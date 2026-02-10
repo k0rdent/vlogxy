@@ -6,12 +6,12 @@ import (
 )
 
 func SetupRoutes(r *gin.Engine) {
-	r.POST("/select/logsql/field_values", handler.ProxyRequest)
+	r.POST("/select/logsql/field_values", handler.ProxyFieldValues)
 
-	r.GET("/select/logsql/hits", handler.ProxyRequest)
-	r.GET("/select/logsql/query", handler.ProxyRequest)
-	r.GET("/select/logsql/stats_query", handler.ProxyRequest)
-	r.GET("/select/logsql/stats_query_range", handler.ProxyRequest)
+	r.GET("/select/logsql/hits", handler.ProxyHits)
+	r.GET("/select/logsql/query", handler.ProxyQuery)
+	// r.GET("/select/logsql/stats_query", handler.ProxyRequest)
+	// r.GET("/select/logsql/stats_query_range", handler.ProxyRequest)
 
 	r.GET("/reload", handler.ReloadConfig)
 
