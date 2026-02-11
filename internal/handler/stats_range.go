@@ -4,18 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
+	"slices"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
-	"github.com/k0rdent/victorialogs-aggregator/internal/victorialogs"
+	"github.com/k0rdent/victorialogs-aggregator/internal/interfaces"
+	"github.com/k0rdent/victorialogs-aggregator/pkg/common"
 	log "github.com/sirupsen/logrus"
 )
-
-type StatsRange struct {
-	Path     string
-	RawQuery string
-}
 
 type StatsRangeResponse struct {
 	Data struct {
@@ -26,69 +21,54 @@ type StatsRangeResponse struct {
 }
 
 type StatsRangeSeries struct {
-	Metric map[string]string `json:"metric"`
-	// Values is an array of [timestamp, value] pairs
-	// where timestamp is a float64 and value is a string
-	Values []ValuePair `json:"values"`
+	Metric map[string]string  `json:"metric"`
+	Values []common.ValuePair `json:"values"`
 }
 
-func ProxyStatsRange(c *gin.Context) {
-	query := NewStatsRange(c.Request.URL.Path, c.Request.URL.RawQuery)
-	response, err := victorialogs.MultiClusterProxy(query)
-	if err != nil {
-		c.JSON(500, gin.H{
-			"message": "Failed to process stats range query",
-		})
-		return
-	}
-	c.Data(200, "application/json", response)
+type StatsRange struct {
+	*common.RequestPath
 }
 
-func NewStatsRange(rawPath, rawQuery string) victorialogs.Querier[StatsRangeResponse] {
+func NewStatsRange(path, rawQuery string) interfaces.ResponseAggregator[StatsRangeResponse] {
 	return &StatsRange{
-		Path:     rawPath,
-		RawQuery: rawQuery,
+		RequestPath: &common.RequestPath{
+			Path:     path,
+			RawQuery: rawQuery,
+		},
 	}
 }
 
-func (s *StatsRange) ResponseHandler(resp *http.Response) (StatsRangeResponse, error) {
-	statsResp := new(StatsRangeResponse)
-	if err := json.NewDecoder(resp.Body).Decode(statsResp); err != nil {
-		log.Errorf("failed to decode response: %v", err)
-		return StatsRangeResponse{}, err
-	}
-	return *statsResp, nil
+func (s *StatsRange) ParseResponse(resp *http.Response) (StatsRangeResponse, error) {
+	return common.DecodeJSONResponse[StatsRangeResponse](resp)
 }
-
-type key string
-type ValuesGroup map[key]map[float64]int64 // metricKey -> timestamp -> sum
 
 func (s *StatsRange) Merge(responses []StatsRangeResponse) ([]byte, error) {
-	groups := make(ValuesGroup)
+	groups := make(common.ValuesGroup)
+
 	for _, resp := range responses {
 		for _, series := range resp.Data.Result {
-			metricKey, err := makeMetricKey(series.Metric)
+			jsonKey, err := common.MakeJsonKey(series.Metric)
 			if err != nil {
 				log.Errorf("failed to make metric key: %v", err)
 				continue
 			}
 
-			m, ok := groups[metricKey]
+			m, ok := groups[jsonKey]
 			if !ok {
 				m = make(map[float64]int64)
-				groups[metricKey] = m
+				groups[jsonKey] = m
 			}
 
 			for _, v := range series.Values {
 				ts, ok := v[0].(float64)
 				if !ok {
-					log.Errorf("failed to parse timestamp: %v", err)
+					log.Errorf("failed to parse timestamp")
 					continue
 				}
 
 				val, ok := v[1].(string)
 				if !ok {
-					log.Errorf("failed to parse value: %v", err)
+					log.Errorf("failed to parse value")
 					continue
 				}
 
@@ -110,17 +90,29 @@ func (s *StatsRange) Merge(responses []StatsRangeResponse) ([]byte, error) {
 		result.Status = responses[0].Status
 	}
 
-	for metricKey, tsMap := range groups {
-		metric, err := parseMetricKey(metricKey)
+	for jsonKey, tsMap := range groups {
+		metric, err := common.ParseJsonKey(jsonKey)
 		if err != nil {
 			log.Errorf("failed to parse metric key: %v", err)
 			continue
 		}
-		var values []ValuePair
+
+		var values []common.ValuePair
 		for ts := range tsMap {
 			valStr := fmt.Sprintf("%d", tsMap[ts])
-			values = append(values, ValuePair{ts, valStr})
+			values = append(values, common.ValuePair{ts, valStr})
 		}
+
+		slices.SortFunc(values, func(a, b common.ValuePair) int {
+			tsA := a[0].(float64)
+			tsB := b[0].(float64)
+			if tsA < tsB {
+				return -1
+			} else if tsA > tsB {
+				return 1
+			}
+			return 0
+		})
 
 		result.Data.Result = append(result.Data.Result, StatsRangeSeries{
 			Metric: metric,
@@ -131,28 +123,6 @@ func (s *StatsRange) Merge(responses []StatsRangeResponse) ([]byte, error) {
 	return json.Marshal(result)
 }
 
-func (s *StatsRange) GetEndpoint(scheme string, target string) string {
-	url := url.URL{
-		Scheme:   scheme,
-		Host:     target,
-		Path:     s.Path,
-		RawQuery: s.RawQuery,
-	}
-	return url.String()
-}
-
-func makeMetricKey(m map[string]string) (key, error) {
-	rawKey, err := json.Marshal(m)
-	if err != nil {
-		return "", err
-	}
-	return key(rawKey), nil
-}
-
-func parseMetricKey(k key) (map[string]string, error) {
-	var m map[string]string
-	if err := json.Unmarshal([]byte(k), &m); err != nil {
-		return nil, err
-	}
-	return m, nil
+func (s *StatsRange) GetURL(scheme string, target string) string {
+	return common.BuildURL(scheme, target, s.Path, s.RawQuery)
 }

@@ -4,10 +4,9 @@ import (
 	"bufio"
 	"encoding/json"
 	"net/http"
-	"net/url"
 
-	"github.com/gin-gonic/gin"
-	"github.com/k0rdent/victorialogs-aggregator/internal/victorialogs"
+	"github.com/k0rdent/victorialogs-aggregator/internal/interfaces"
+	"github.com/k0rdent/victorialogs-aggregator/pkg/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -15,31 +14,19 @@ type Logs []Log
 type Log map[string]any
 
 type Query struct {
-	Path     string
-	RawQuery string
+	*common.RequestPath
 }
 
-func NewQuery(rawPath, rawQuery string) victorialogs.Querier[Logs] {
+func NewQuery(path, rawQuery string) interfaces.ResponseAggregator[Logs] {
 	return &Query{
-		Path:     rawPath,
-		RawQuery: rawQuery,
+		RequestPath: &common.RequestPath{
+			Path:     path,
+			RawQuery: rawQuery,
+		},
 	}
 }
 
-func ProxyQuery(c *gin.Context) {
-	query := NewQuery(c.Request.URL.Path, c.Request.URL.RawQuery)
-	response, err := victorialogs.MultiClusterProxy(query)
-	if err != nil {
-		log.Errorf("failed to make query: %v", err)
-		c.JSON(500, gin.H{
-			"message": "Failed to process proxy query",
-		})
-		return
-	}
-	c.Data(200, "application/json", response)
-}
-
-func (q *Query) ResponseHandler(resp *http.Response) (Logs, error) {
+func (q *Query) ParseResponse(resp *http.Response) (Logs, error) {
 	scanner := bufio.NewScanner(resp.Body)
 
 	logs := Logs{}
@@ -57,14 +44,16 @@ func (q *Query) ResponseHandler(resp *http.Response) (Logs, error) {
 
 	if err := scanner.Err(); err != nil {
 		log.Errorf("error reading response: %v", err)
+		return nil, err
 	}
 
 	return logs, nil
 }
 
-func (q *Query) Merge(mergedLogs []Logs) ([]byte, error) {
+func (q *Query) Merge(responses []Logs) ([]byte, error) {
 	var rawOutput []byte
-	for _, logs := range mergedLogs {
+
+	for _, logs := range responses {
 		for _, vlLog := range logs {
 			buf, err := marshalQuery(vlLog)
 			if err != nil {
@@ -77,14 +66,8 @@ func (q *Query) Merge(mergedLogs []Logs) ([]byte, error) {
 	return rawOutput, nil
 }
 
-func (q *Query) GetEndpoint(scheme, target string) string {
-	url := url.URL{
-		Scheme:   scheme,
-		Host:     target,
-		Path:     q.Path,
-		RawQuery: q.RawQuery,
-	}
-	return url.String()
+func (q *Query) GetURL(scheme, target string) string {
+	return common.BuildURL(scheme, target, q.Path, q.RawQuery)
 }
 
 func marshalQuery(m Log) ([]byte, error) {

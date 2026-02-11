@@ -6,12 +6,14 @@ import (
 	"sync"
 
 	"github.com/goccy/go-yaml"
+	"github.com/k0rdent/victorialogs-aggregator/internal/interfaces"
 )
 
+// Config implements ConfigProvider interface
 type Config struct {
 	data  *ConfigData
 	path  string
-	mutex sync.Mutex
+	mutex sync.RWMutex
 }
 
 type Group struct {
@@ -23,8 +25,7 @@ type ConfigData struct {
 	ServerGroups []*Group `yaml:"server_groups"`
 }
 
-var GlobalConfig *Config
-
+// LoadConfig loads configuration from the specified path
 func LoadConfig(path string) (*Config, error) {
 	if path == "" {
 		return nil, fmt.Errorf("config path cannot be empty")
@@ -38,12 +39,13 @@ func LoadConfig(path string) (*Config, error) {
 	config := &Config{
 		data:  configData,
 		path:  path,
-		mutex: sync.Mutex{},
+		mutex: sync.RWMutex{},
 	}
 
 	return config, nil
 }
 
+// Reload reloads configuration from the source file
 func (c *Config) Reload() error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -57,9 +59,25 @@ func (c *Config) Reload() error {
 	return nil
 }
 
+// GetServerGroups returns the list of configured server groups
+func (c *Config) GetServerGroups() []interfaces.ServerGroup {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	groups := make([]interfaces.ServerGroup, 0, len(c.data.ServerGroups))
+	for _, g := range c.data.ServerGroups {
+		groups = append(groups, interfaces.ServerGroup{
+			Target: g.Target,
+			Scheme: g.Scheme,
+		})
+	}
+	return groups
+}
+
+// GetData returns a copy of the configuration data (for backward compatibility)
 func (c *Config) GetData() ConfigData {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 	return *c.data
 }
 

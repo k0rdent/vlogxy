@@ -5,16 +5,16 @@ import (
 	"github.com/k0rdent/victorialogs-aggregator/internal/handler"
 )
 
-func SetupRoutes(r *gin.Engine) {
-	r.POST("/select/logsql/field_values", handler.ProxyFieldValues)
+// SetupRoutes configures all application routes with the provided handler
+func SetupRoutes(r *gin.Engine, h *handler.Handler) {
+	r.POST("/select/logsql/field_values", h.ProxyFieldValues)
 
-	r.GET("/select/logsql/hits", handler.ProxyHits)
-	r.GET("/select/logsql/query", handler.ProxyQuery)
-	r.GET("/select/logsql/stats_query", handler.ProxyStats)
-	r.GET("/select/logsql/stats_query_range", handler.ProxyStatsRange)
+	r.GET("/select/logsql/hits", h.ProxyHits)
+	r.GET("/select/logsql/query", h.ProxyQuery)
+	r.GET("/select/logsql/stats_query", h.ProxyStats)
+	r.GET("/select/logsql/stats_query_range", h.ProxyStatsRange)
 
-	r.GET("/reload", handler.ReloadConfig)
+	r.GET("/reload", h.ReloadConfig)
 
-	r.GET("/health", handler.HealthCheck)
-	r.GET("/readyz", handler.ReadyCheck)
+	r.GET("/health", h.HealthCheck)
 }

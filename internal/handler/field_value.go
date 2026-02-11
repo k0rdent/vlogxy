@@ -3,11 +3,9 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
-	"net/url"
 
-	"github.com/gin-gonic/gin"
-	"github.com/k0rdent/victorialogs-aggregator/internal/victorialogs"
-	log "github.com/sirupsen/logrus"
+	"github.com/k0rdent/victorialogs-aggregator/internal/interfaces"
+	"github.com/k0rdent/victorialogs-aggregator/pkg/common"
 )
 
 type FieldValuesResponse struct {
@@ -20,36 +18,20 @@ type Value struct {
 }
 
 type FieldValuesQuery struct {
-	Path     string
-	RawQuery string
+	*common.RequestPath
 }
 
-func NewFieldValuesQuery(rawPath, rawQuery string) victorialogs.Querier[FieldValuesResponse] {
+func NewFieldValuesQuery(path, rawQuery string) interfaces.ResponseAggregator[FieldValuesResponse] {
 	return &FieldValuesQuery{
-		Path:     rawPath,
-		RawQuery: rawQuery,
+		RequestPath: &common.RequestPath{
+			Path:     path,
+			RawQuery: rawQuery,
+		},
 	}
 }
 
-func ProxyFieldValues(c *gin.Context) {
-	query := NewFieldValuesQuery(c.Request.URL.Path, c.Request.URL.RawQuery)
-	response, err := victorialogs.MultiClusterProxy(query)
-	if err != nil {
-		c.JSON(500, gin.H{
-			"message": "Failed to process field values query",
-		})
-		return
-	}
-	c.Data(200, "application/json", response)
-}
-
-func (f *FieldValuesQuery) ResponseHandler(resp *http.Response) (FieldValuesResponse, error) {
-	response := new(FieldValuesResponse)
-	if err := json.NewDecoder(resp.Body).Decode(response); err != nil {
-		log.Errorf("failed to decode response: %v", err)
-		return FieldValuesResponse{}, err
-	}
-	return *response, nil
+func (f *FieldValuesQuery) ParseResponse(resp *http.Response) (FieldValuesResponse, error) {
+	return common.DecodeJSONResponse[FieldValuesResponse](resp)
 }
 
 func (f *FieldValuesQuery) Merge(responses []FieldValuesResponse) ([]byte, error) {
@@ -76,12 +58,6 @@ func (f *FieldValuesQuery) Merge(responses []FieldValuesResponse) ([]byte, error
 	return json.Marshal(mergedResponse)
 }
 
-func (f *FieldValuesQuery) GetEndpoint(scheme string, target string) string {
-	url := url.URL{
-		Scheme:   scheme,
-		Host:     target,
-		Path:     f.Path,
-		RawQuery: f.RawQuery,
-	}
-	return url.String()
+func (f *FieldValuesQuery) GetURL(scheme string, target string) string {
+	return common.BuildURL(scheme, target, f.Path, f.RawQuery)
 }
