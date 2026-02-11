@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/k0rdent/victorialogs-aggregator/interanl/config"
+	"github.com/k0rdent/victorialogs-aggregator/internal/config"
 	log "github.com/sirupsen/logrus"
 )
 

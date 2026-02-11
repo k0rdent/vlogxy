@@ -2,7 +2,7 @@ package handler
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/k0rdent/victorialogs-aggregator/interanl/config"
+	"github.com/k0rdent/victorialogs-aggregator/internal/config"
 	log "github.com/sirupsen/logrus"
 )
 

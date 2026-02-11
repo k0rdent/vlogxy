@@ -6,7 +6,7 @@ import (
 	"net/url"
 
 	"github.com/gin-gonic/gin"
-	"github.com/k0rdent/victorialogs-aggregator/interanl/victorialogs"
+	"github.com/k0rdent/victorialogs-aggregator/internal/victorialogs"
 	log "github.com/sirupsen/logrus"
 )
 

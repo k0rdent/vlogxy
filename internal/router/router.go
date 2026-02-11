@@ -2,7 +2,7 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/k0rdent/victorialogs-aggregator/interanl/handler"
+	"github.com/k0rdent/victorialogs-aggregator/internal/handler"
 )
 
 func SetupRoutes(r *gin.Engine) {
@@ -10,8 +10,8 @@ func SetupRoutes(r *gin.Engine) {
 
 	r.GET("/select/logsql/hits", handler.ProxyHits)
 	r.GET("/select/logsql/query", handler.ProxyQuery)
-	// r.GET("/select/logsql/stats_query", handler.ProxyRequest)
-	// r.GET("/select/logsql/stats_query_range", handler.ProxyRequest)
+	r.GET("/select/logsql/stats_query", handler.ProxyStats)
+	r.GET("/select/logsql/stats_query_range", handler.ProxyStatsRange)
 
 	r.GET("/reload", handler.ReloadConfig)
 
