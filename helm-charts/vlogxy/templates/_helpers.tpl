@@ -1,14 +1,14 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "victorialogs-aggregator.name" -}}
+{{- define "vlogxy.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Create a default fully qualified app name.
 */}}
-{{- define "victorialogs-aggregator.fullname" -}}
+{{- define "vlogxy.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -24,16 +24,16 @@ Create a default fully qualified app name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "victorialogs-aggregator.chart" -}}
+{{- define "vlogxy.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "victorialogs-aggregator.labels" -}}
-helm.sh/chart: {{ include "victorialogs-aggregator.chart" . }}
-{{ include "victorialogs-aggregator.selectorLabels" . }}
+{{- define "vlogxy.labels" -}}
+helm.sh/chart: {{ include "vlogxy.chart" . }}
+{{ include "vlogxy.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -43,18 +43,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "victorialogs-aggregator.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "victorialogs-aggregator.name" . }}
+{{- define "vlogxy.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "vlogxy.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end }}
-
-{{/*
-Create the name of the service account to use
-*/}}
-{{- define "victorialogs-aggregator.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "victorialogs-aggregator.fullname" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
-{{- end }}
 {{- end }}

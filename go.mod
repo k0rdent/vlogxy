@@ -1,4 +1,4 @@
-module github.com/k0rdent/victorialogs-aggregator
+module github.com/k0rdent/vlogxy
 
 go 1.25.6
 
@@ -51,5 +51,5 @@ require (
 	golang.org/x/text v0.31.0 // indirect
 	golang.org/x/tools v0.38.0 // indirect
 	google.golang.org/protobuf v1.36.9 // indirect
-	k8s.io/apimachinery v0.35.0
+	k8s.io/apimachinery v0.35.1
 )

@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/goccy/go-yaml"
-	"github.com/k0rdent/victorialogs-aggregator/internal/interfaces"
+	servergroup "github.com/k0rdent/vlogxy/internal/server-group"
 )
 
 // Config implements ConfigProvider interface
@@ -16,13 +16,8 @@ type Config struct {
 	mutex sync.RWMutex
 }
 
-type Group struct {
-	Target string `yaml:"target"`
-	Scheme string `yaml:"scheme"`
-}
-
 type ConfigData struct {
-	ServerGroups []*Group `yaml:"server_groups"`
+	ServerGroups []servergroup.Group `yaml:"server_groups"`
 }
 
 // LoadConfig loads configuration from the specified path
@@ -60,18 +55,10 @@ func (c *Config) Reload() error {
 }
 
 // GetServerGroups returns the list of configured server groups
-func (c *Config) GetServerGroups() []interfaces.ServerGroup {
+func (c *Config) GetServerGroups() []servergroup.Group {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-
-	groups := make([]interfaces.ServerGroup, 0, len(c.data.ServerGroups))
-	for _, g := range c.data.ServerGroups {
-		groups = append(groups, interfaces.ServerGroup{
-			Target: g.Target,
-			Scheme: g.Scheme,
-		})
-	}
-	return groups
+	return c.data.ServerGroups
 }
 
 // GetData returns a copy of the configuration data (for backward compatibility)

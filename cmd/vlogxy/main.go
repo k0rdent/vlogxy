@@ -6,21 +6,20 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/k0rdent/victorialogs-aggregator/internal/config"
-	"github.com/k0rdent/victorialogs-aggregator/internal/handler"
-	"github.com/k0rdent/victorialogs-aggregator/internal/router"
-	"github.com/k0rdent/victorialogs-aggregator/internal/service"
-	"github.com/sirupsen/logrus"
+	"github.com/k0rdent/vlogxy/internal/config"
+	"github.com/k0rdent/vlogxy/internal/handler"
+	"github.com/k0rdent/vlogxy/internal/router"
+	"github.com/k0rdent/vlogxy/internal/service"
 	log "github.com/sirupsen/logrus"
 )
 
 func main() {
 	// Setup logger
-	logger := logrus.New()
-	logger.SetFormatter(&logrus.JSONFormatter{})
-	logger.SetLevel(logrus.DebugLevel)
+	logger := log.New()
+	logger.SetFormatter(&log.JSONFormatter{})
+	logger.SetLevel(log.DebugLevel)
 	gin.DefaultWriter = logger.Writer()
-	gin.DefaultErrorWriter = logger.WriterLevel(logrus.ErrorLevel)
+	gin.DefaultErrorWriter = logger.WriterLevel(log.ErrorLevel)
 
 	// Load configuration
 	configPath := os.Getenv("CONFIG_PATH")

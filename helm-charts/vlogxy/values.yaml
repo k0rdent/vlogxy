@@ -1,0 +1,52 @@
+replicaCount: 1
+
+image:
+  registry: "ghcr.io/k0rdent"
+  repository: vlogxy
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+
+service:
+  type: ClusterIP
+  port: 8085
+  targetPort: 8085
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Configuration for the aggregator
+config:
+  # Path where config will be mounted in the pod
+  mountPath: /etc/vlogxy
+  # Config file name
+  fileName: config.yaml
+  # Configuration data
+  data:
+    server_groups:
+      - cluster_name: "mothership"
+        target: "kof-storage-victoria-logs-cluster-vlselect:9471"
+        scheme: "http"
+

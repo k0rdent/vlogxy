@@ -5,7 +5,8 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/k0rdent/victorialogs-aggregator/internal/interfaces"
+	"github.com/k0rdent/vlogxy/internal/interfaces"
+	servergroup "github.com/k0rdent/vlogxy/internal/server-group"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -42,29 +43,26 @@ func Execute[T any](ctx context.Context, s *ProxyService, querier interfaces.Res
 		wg.Go(func() {
 			group := serverGroups[i]
 
-			select {
-			case <-ctx.Done():
-				log.Warnf("context cancelled, skipping request to %s", group.Target)
-				return
-			default:
-			}
-
-			endpoint := querier.GetURL(group.Scheme, group.Target)
-			response, err := s.forwardRequest(ctx, endpoint)
+			url := querier.GetURL(group.Scheme, group.Target, group.PathPrefix)
+			response, err := s.forwardRequest(ctx, group, url)
 			if err != nil {
-				log.Errorf("failed to forward request to %s: %v", endpoint, err)
+				log.Errorf("failed to forward request to %s: %v", group.Target, err)
 				return
 			}
-			defer response.Body.Close()
+			defer func() {
+				if err := response.Body.Close(); err != nil {
+					log.Errorf("failed to close response body from %s: %v", group.Target, err)
+				}
+			}()
 
 			if response.StatusCode != http.StatusOK {
-				log.Errorf("received non-200 status code %d from %s", response.StatusCode, endpoint)
+				log.Errorf("received non-200 status code %d from %s", response.StatusCode, group.Target)
 				return
 			}
 
 			resp, err := querier.ParseResponse(response)
 			if err != nil {
-				log.Errorf("failed to handle response from %s: %v", endpoint, err)
+				log.Errorf("failed to handle response from %s: %v", group.Target, err)
 				return
 			}
 
@@ -79,18 +77,22 @@ func Execute[T any](ctx context.Context, s *ProxyService, querier interfaces.Res
 	return querier.Merge(mergedLogs)
 }
 
-func (s *ProxyService) forwardRequest(ctx context.Context, endpoint string) (*http.Response, error) {
-	proxyReq, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+func (s *ProxyService) forwardRequest(ctx context.Context, group servergroup.Group, url string) (*http.Response, error) {
+	username := group.HttpClient.BasicAuth.Username
+	password := group.HttpClient.BasicAuth.Password
+
+	proxyReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		log.Errorf("failed to create request for %s: %v", endpoint, err)
+		log.Errorf("failed to create request for %s: %v", url, err)
 		return nil, err
 	}
 
 	proxyReq.Header.Set("Content-Type", "application/json")
+	proxyReq.SetBasicAuth(username, password)
 
 	proxyResp, err := s.httpClient.Do(proxyReq)
 	if err != nil {
-		log.Errorf("failed to forward request to %s: %v", endpoint, err)
+		log.Errorf("failed to forward request to %s: %v", url, err)
 		return nil, err
 	}
 

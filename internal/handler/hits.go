@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/k0rdent/victorialogs-aggregator/internal/interfaces"
-	"github.com/k0rdent/victorialogs-aggregator/pkg/common"
+	"github.com/k0rdent/vlogxy/internal/interfaces"
+	"github.com/k0rdent/vlogxy/pkg/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -94,6 +94,6 @@ func (h *HitsQuery) Merge(responses []Response) ([]byte, error) {
 	return json.Marshal(mergedResponse)
 }
 
-func (h *HitsQuery) GetURL(scheme string, target string) string {
-	return common.BuildURL(scheme, target, h.Path, h.RawQuery)
+func (h *HitsQuery) GetURL(scheme, target, path string) string {
+	return common.BuildURL(scheme, target, path+h.Path, h.RawQuery)
 }

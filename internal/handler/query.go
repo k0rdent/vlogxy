@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/k0rdent/victorialogs-aggregator/internal/interfaces"
-	"github.com/k0rdent/victorialogs-aggregator/pkg/common"
+	"github.com/k0rdent/vlogxy/internal/interfaces"
+	"github.com/k0rdent/vlogxy/pkg/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -66,8 +66,8 @@ func (q *Query) Merge(responses []Logs) ([]byte, error) {
 	return rawOutput, nil
 }
 
-func (q *Query) GetURL(scheme, target string) string {
-	return common.BuildURL(scheme, target, q.Path, q.RawQuery)
+func (q *Query) GetURL(scheme, target, path string) string {
+	return common.BuildURL(scheme, target, path+q.Path, q.RawQuery)
 }
 
 func marshalQuery(m Log) ([]byte, error) {

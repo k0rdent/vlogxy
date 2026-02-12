@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/k0rdent/victorialogs-aggregator/internal/interfaces"
-	"github.com/k0rdent/victorialogs-aggregator/pkg/common"
+	"github.com/k0rdent/vlogxy/internal/interfaces"
+	"github.com/k0rdent/vlogxy/pkg/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -112,6 +112,6 @@ func (s *Stats) Merge(responses []StatsResponse) ([]byte, error) {
 	return json.Marshal(result)
 }
 
-func (s *Stats) GetURL(scheme string, target string) string {
-	return common.BuildURL(scheme, target, s.Path, s.RawQuery)
+func (s *Stats) GetURL(scheme, host, path string) string {
+	return common.BuildURL(scheme, host, path+s.Path, s.RawQuery)
 }

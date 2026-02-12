@@ -2,7 +2,7 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/k0rdent/victorialogs-aggregator/internal/handler"
+	"github.com/k0rdent/vlogxy/internal/handler"
 )
 
 // SetupRoutes configures all application routes with the provided handler

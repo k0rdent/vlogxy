@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/k0rdent/victorialogs-aggregator/internal/interfaces"
-	"github.com/k0rdent/victorialogs-aggregator/internal/service"
+	"github.com/k0rdent/vlogxy/internal/interfaces"
+	"github.com/k0rdent/vlogxy/internal/service"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/k0rdent/victorialogs-aggregator/internal/interfaces"
-	"github.com/k0rdent/victorialogs-aggregator/pkg/common"
+	"github.com/k0rdent/vlogxy/internal/interfaces"
+	"github.com/k0rdent/vlogxy/pkg/common"
 )
 
 type FieldValuesResponse struct {
@@ -58,6 +58,6 @@ func (f *FieldValuesQuery) Merge(responses []FieldValuesResponse) ([]byte, error
 	return json.Marshal(mergedResponse)
 }
 
-func (f *FieldValuesQuery) GetURL(scheme string, target string) string {
-	return common.BuildURL(scheme, target, f.Path, f.RawQuery)
+func (f *FieldValuesQuery) GetURL(scheme, target, path string) string {
+	return common.BuildURL(scheme, target, path+f.Path, f.RawQuery)
 }
