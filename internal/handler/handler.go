@@ -2,7 +2,9 @@ package handler
 
 import (
 	"context"
+	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/k0rdent/vlogxy/internal/interfaces"
@@ -54,6 +56,11 @@ func (h *Handler) ProxyFieldValues(c *gin.Context) {
 	executeGenericQuery(c, h.proxyService, query)
 }
 
+func (h *Handler) StreamQuery(c *gin.Context) {
+	query := NewStreamQuery(c.Request.URL.Path, c.Request.URL.RawQuery)
+	executeGenericStreamQuery[[]byte](c, h.proxyService, query)
+}
+
 // ReloadConfig handles /reload endpoint
 func (h *Handler) ReloadConfig(c *gin.Context) {
 	if err := h.config.Reload(); err != nil {
@@ -94,4 +101,55 @@ func executeGenericQuery[T any](c *gin.Context, proxyService *service.ProxyServi
 	}
 
 	c.Data(http.StatusOK, "application/json", response)
+}
+
+// executeGenericStreamQuery handles streaming queries with proper error handling
+func executeGenericStreamQuery[T any](c *gin.Context, proxyService *service.ProxyService, querier interfaces.StreamResponseAggregator[T]) {
+	ctx := c.Request.Context()
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	ctx, cancel := context.WithCancel(ctx)
+
+	limit := getLimit(c)
+	writeCount := 0
+	dataChan := service.Stream[T](ctx, proxyService, querier)
+	c.Stream(func(w io.Writer) bool {
+		select {
+		case <-ctx.Done():
+			log.Warn("client disconnected, stopping stream")
+			return false
+		case output, ok := <-dataChan:
+			if !ok {
+				return false
+			}
+			if limit > 0 && writeCount == limit {
+				log.Infof("reached limit of %d, stopping stream", limit)
+				cancel()
+				return false
+			}
+			if _, err := w.Write(output); err != nil {
+				log.Errorf("failed to write streaming data: %v", err)
+				return false
+			}
+			if _, err := w.Write([]byte("\n")); err != nil {
+				log.Errorf("failed to write newline: %v", err)
+				return false
+			}
+			writeCount++
+			return true
+		}
+	})
+}
+
+func getLimit(c *gin.Context) int {
+	limitStr := c.Query("limit")
+	if limitStr == "" {
+		return 0
+	}
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		return 0
+	}
+	return limit
 }

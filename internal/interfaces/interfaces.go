@@ -1,6 +1,7 @@
 package interfaces
 
 import (
+	"context"
 	"net/http"
 
 	servergroup "github.com/k0rdent/vlogxy/internal/server-group"
@@ -25,6 +26,13 @@ type ResponseAggregator[T any] interface {
 	ParseResponse(*http.Response) (T, error)
 	// Merge combines responses from multiple backends
 	Merge([]T) ([]byte, error)
+	// GetURL returns the full URL for the query
+	GetURL(scheme, host, path string) string
+}
+
+type StreamResponseAggregator[T any] interface {
+	// StreamParseResponse processes a single backend response and returns a channel of results
+	StreamParseResponse(context.Context, *http.Response) (<-chan []byte, error)
 	// GetURL returns the full URL for the query
 	GetURL(scheme, host, path string) string
 }
