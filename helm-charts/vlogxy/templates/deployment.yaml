@@ -56,6 +56,23 @@ spec:
         volumeMounts:
         - name: config
           mountPath: {{ .Values.config.mountPath }}
+      - name: config-reloader
+        image: "ghcr.io/jimmidyson/configmap-reload:v0.15.0"
+        imagePullPolicy: IfNotPresent
+        args:
+        - --volume-dir={{ .Values.config.mountPath }}
+        - --webhook-url=http://localhost:{{ .Values.service.targetPort }}/reload
+        - --webhook-method=GET
+        resources:
+          limits:
+            cpu: 10m
+            memory: 64Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+        volumeMounts:
+        - name: config
+          mountPath: {{ .Values.config.mountPath }}
           readOnly: true
       volumes:
       - name: config
