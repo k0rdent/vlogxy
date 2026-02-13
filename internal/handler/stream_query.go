@@ -28,7 +28,11 @@ func (s *StreamQuery) StreamParseResponse(ctx context.Context, resp *http.Respon
 
 	go func() {
 		defer close(dataChan)
-		defer resp.Body.Close()
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				log.Errorf("failed to close response body: %v", err)
+			}
+		}()
 
 		scanner := bufio.NewScanner(resp.Body)
 		defer func() {

@@ -56,7 +56,9 @@ func (s *ProxyService) collectStreamingResponses(
 
 			if response.StatusCode != http.StatusOK {
 				log.Errorf("received non-200 status code %d from %s", response.StatusCode, group.Target)
-				response.Body.Close()
+				if err := response.Body.Close(); err != nil {
+					log.Errorf("failed to close response body: %v", err)
+				}
 				return
 			}
 
