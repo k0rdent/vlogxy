@@ -46,14 +46,6 @@ config:
   # Configuration data
   data:
     server_groups:
-      - cluster_name: "mothership"
-        target: "kof-storage-victoria-logs-cluster-vlselect:9471"
-        scheme: "http"
-      - cluster_name: "andrejs-aws-ue2-istio"
-        target: "andrejs-aws-ue2-istio1-vmauth:8427"
-        path_prefix: "/vls"
-        scheme: "http"
-        http_client:
-          basic_auth:
-            username: "admin-70913480"
-            password: "frGKngOma0MP3OVA"
+      - cluster_name: "test_cluster"
+        target: "victoria-logs-storage.example.com"
+        scheme: "https"
