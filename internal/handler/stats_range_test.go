@@ -14,7 +14,7 @@ var _ = Describe("StatsRange Merge method tests", func() {
 	var statsRange *handler.StatsRange
 
 	BeforeEach(func() {
-		statsRange = handler.NewStatsRange("/query_range", "query=test").(*handler.StatsRange)
+		statsRange = handler.NewStatsRange().(*handler.StatsRange)
 	})
 
 	Context("when merging empty responses", func() {

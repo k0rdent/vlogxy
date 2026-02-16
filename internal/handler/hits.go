@@ -20,17 +20,10 @@ type Hits struct {
 	Total      int               `json:"total"`
 }
 
-type HitsQuery struct {
-	*common.RequestPath
-}
+type HitsQuery struct{}
 
-func NewHits(path, rawQuery string) interfaces.ResponseAggregator[Response] {
-	return &HitsQuery{
-		RequestPath: &common.RequestPath{
-			Path:     path,
-			RawQuery: rawQuery,
-		},
-	}
+func NewHits() interfaces.ResponseAggregator[Response] {
+	return &HitsQuery{}
 }
 
 func (h *HitsQuery) ParseResponse(resp *http.Response) (Response, error) {
@@ -92,8 +85,4 @@ func (h *HitsQuery) Merge(responses []Response) ([]byte, error) {
 	}
 
 	return json.Marshal(mergedResponse)
-}
-
-func (h *HitsQuery) GetURL(scheme, target, path string) string {
-	return common.BuildURL(scheme, target, path+h.Path, h.RawQuery)
 }

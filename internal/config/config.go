@@ -17,7 +17,7 @@ type Config struct {
 }
 
 type ConfigData struct {
-	ServerGroups []servergroup.Group `yaml:"server_groups"`
+	ServerGroups []servergroup.Server `yaml:"server_groups"`
 }
 
 // LoadConfig loads configuration from the specified path
@@ -55,7 +55,7 @@ func (c *Config) Reload() error {
 }
 
 // GetServerGroups returns the list of configured server groups
-func (c *Config) GetServerGroups() []servergroup.Group {
+func (c *Config) GetServerGroups() []servergroup.Server {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	return c.data.ServerGroups

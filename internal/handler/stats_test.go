@@ -14,7 +14,7 @@ var _ = Describe("Stats Merge method tests", func() {
 	var stats *handler.Stats
 
 	BeforeEach(func() {
-		stats = handler.NewStats("/query", "query=test").(*handler.Stats)
+		stats = handler.NewStats().(*handler.Stats)
 	})
 
 	Context("when merging empty responses", func() {

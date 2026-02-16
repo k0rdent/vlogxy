@@ -25,17 +25,10 @@ type StatsRangeSeries struct {
 	Values []common.ValuePair `json:"values"`
 }
 
-type StatsRange struct {
-	*common.RequestPath
-}
+type StatsRange struct{}
 
-func NewStatsRange(path, rawQuery string) interfaces.ResponseAggregator[StatsRangeResponse] {
-	return &StatsRange{
-		RequestPath: &common.RequestPath{
-			Path:     path,
-			RawQuery: rawQuery,
-		},
-	}
+func NewStatsRange() interfaces.ResponseAggregator[StatsRangeResponse] {
+	return &StatsRange{}
 }
 
 func (s *StatsRange) ParseResponse(resp *http.Response) (StatsRangeResponse, error) {
@@ -84,7 +77,6 @@ func (s *StatsRange) Merge(responses []StatsRangeResponse) ([]byte, error) {
 
 	var result StatsRangeResponse
 
-	// Merge resultType and status from first response
 	if len(responses) > 0 {
 		result.Data.ResultType = responses[0].Data.ResultType
 		result.Status = responses[0].Status
@@ -121,8 +113,4 @@ func (s *StatsRange) Merge(responses []StatsRangeResponse) ([]byte, error) {
 	}
 
 	return json.Marshal(result)
-}
-
-func (s *StatsRange) GetURL(scheme, target, path string) string {
-	return common.BuildURL(scheme, target, path+s.Path, s.RawQuery)
 }

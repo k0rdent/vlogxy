@@ -13,7 +13,7 @@ var _ = Describe("HitsQuery Merge method tests", func() {
 	var hitsQuery *handler.HitsQuery
 
 	BeforeEach(func() {
-		hitsQuery = handler.NewHits("/hits", "query=test").(*handler.HitsQuery)
+		hitsQuery = handler.NewHits().(*handler.HitsQuery)
 	})
 
 	Context("when merging empty responses", func() {

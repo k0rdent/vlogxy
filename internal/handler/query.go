@@ -17,13 +17,8 @@ type Query struct {
 	*common.RequestPath
 }
 
-func NewQuery(path, rawQuery string) interfaces.ResponseAggregator[Logs] {
-	return &Query{
-		RequestPath: &common.RequestPath{
-			Path:     path,
-			RawQuery: rawQuery,
-		},
-	}
+func NewQuery() interfaces.ResponseAggregator[Logs] {
+	return &Query{}
 }
 
 func (q *Query) ParseResponse(resp *http.Response) (Logs, error) {
@@ -64,10 +59,6 @@ func (q *Query) Merge(responses []Logs) ([]byte, error) {
 		}
 	}
 	return rawOutput, nil
-}
-
-func (q *Query) GetURL(scheme, target, path string) string {
-	return common.BuildURL(scheme, target, path+q.Path, q.RawQuery)
 }
 
 func marshalQuery(m Log) ([]byte, error) {

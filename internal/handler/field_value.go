@@ -17,17 +17,10 @@ type Value struct {
 	Hits  int    `json:"hits"`
 }
 
-type FieldValuesQuery struct {
-	*common.RequestPath
-}
+type FieldValuesQuery struct{}
 
-func NewFieldValuesQuery(path, rawQuery string) interfaces.ResponseAggregator[FieldValuesResponse] {
-	return &FieldValuesQuery{
-		RequestPath: &common.RequestPath{
-			Path:     path,
-			RawQuery: rawQuery,
-		},
-	}
+func NewFieldValuesQuery() interfaces.ResponseAggregator[FieldValuesResponse] {
+	return &FieldValuesQuery{}
 }
 
 func (f *FieldValuesQuery) ParseResponse(resp *http.Response) (FieldValuesResponse, error) {
@@ -56,8 +49,4 @@ func (f *FieldValuesQuery) Merge(responses []FieldValuesResponse) ([]byte, error
 	}
 
 	return json.Marshal(mergedResponse)
-}
-
-func (f *FieldValuesQuery) GetURL(scheme, target, path string) string {
-	return common.BuildURL(scheme, target, path+f.Path, f.RawQuery)
 }

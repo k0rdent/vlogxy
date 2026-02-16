@@ -13,7 +13,7 @@ var _ = Describe("FieldValuesQuery Merge method tests", func() {
 	var fieldValuesQuery *handler.FieldValuesQuery
 
 	BeforeEach(func() {
-		fieldValuesQuery = handler.NewFieldValuesQuery("/field_values", "field=test").(*handler.FieldValuesQuery)
+		fieldValuesQuery = handler.NewFieldValuesQuery().(*handler.FieldValuesQuery)
 	})
 
 	Context("when merging empty responses", func() {

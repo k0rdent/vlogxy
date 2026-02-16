@@ -14,7 +14,7 @@ var _ = Describe("Query Merge method tests", func() {
 	var query *handler.Query
 
 	BeforeEach(func() {
-		query = handler.NewQuery("/select/logsql/query", "query=test").(*handler.Query)
+		query = handler.NewQuery().(*handler.Query)
 	})
 
 	Context("when merging empty responses", func() {

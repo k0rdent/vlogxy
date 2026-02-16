@@ -1,10 +1,14 @@
 package servergroup
 
 import (
+	"crypto/tls"
+	"net/http"
+
+	"github.com/k0rdent/vlogxy/pkg/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type Group struct {
+type Server struct {
 	// Target address:port list for promxy Prometheus server group static_configs
 	Target string `yaml:"target"`
 	// ClusterName is the promxyCluster label value
@@ -33,4 +37,27 @@ type BasicAuth struct {
 // TLSConfig part of prometheus HTTPClientConfig with yaml annotation
 type TLSConfig struct {
 	InsecureSkipVerify bool `yaml:"insecure_skip_verify"`
+}
+
+func (s Server) URL(path, query string) string {
+	return common.BuildURL(s.Scheme, s.Target, s.PathPrefix+path, query)
+}
+
+func (s Server) Username() string {
+	return s.HttpClient.BasicAuth.Username
+}
+
+func (s Server) Password() string {
+	return s.HttpClient.BasicAuth.Password
+}
+
+func (s Server) HTTPClient() *http.Client {
+	return &http.Client{
+		Timeout: s.HttpClient.DialTimeout.Duration,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: s.HttpClient.TLSConfig.InsecureSkipVerify,
+			},
+		},
+	}
 }

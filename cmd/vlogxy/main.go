@@ -1,15 +1,12 @@
 package main
 
 import (
-	"net/http"
 	"os"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/k0rdent/vlogxy/internal/config"
 	"github.com/k0rdent/vlogxy/internal/handler"
 	"github.com/k0rdent/vlogxy/internal/router"
-	"github.com/k0rdent/vlogxy/internal/service"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -28,12 +25,7 @@ func main() {
 		log.Panicf("config not loaded: %v", err)
 	}
 
-	// Initialize dependencies
-	httpClient := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-	proxyService := service.NewProxyService(conf, httpClient)
-	handlerInstance := handler.NewHandler(conf, proxyService)
+	handlerInstance := handler.NewHandler(conf)
 
 	// Setup router
 	r := gin.Default()

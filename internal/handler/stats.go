@@ -24,17 +24,10 @@ type StatsSeries struct {
 	Value  common.ValuePair  `json:"value"`
 }
 
-type Stats struct {
-	*common.RequestPath
-}
+type Stats struct{}
 
-func NewStats(path, rawQuery string) interfaces.ResponseAggregator[StatsResponse] {
-	return &Stats{
-		RequestPath: &common.RequestPath{
-			Path:     path,
-			RawQuery: rawQuery,
-		},
-	}
+func NewStats() interfaces.ResponseAggregator[StatsResponse] {
+	return &Stats{}
 }
 
 func (s *Stats) ParseResponse(resp *http.Response) (StatsResponse, error) {
@@ -110,8 +103,4 @@ func (s *Stats) Merge(responses []StatsResponse) ([]byte, error) {
 	}
 
 	return json.Marshal(result)
-}
-
-func (s *Stats) GetURL(scheme, host, path string) string {
-	return common.BuildURL(scheme, host, path+s.Path, s.RawQuery)
 }
