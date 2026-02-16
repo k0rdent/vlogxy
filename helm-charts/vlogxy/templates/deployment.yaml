@@ -26,6 +26,12 @@ spec:
       {{- end }}
       containers:
       - name: vlogxy
+        args:
+        - --port={{ .Values.service.targetPort }}
+        {{- if .Values.debug }}
+        - --debug
+        {{- end }}
+        - --config={{ .Values.config.mountPath }}/{{ .Values.config.fileName }}
         env:
         - name: CONFIG_PATH
           value: "{{ .Values.config.mountPath }}/{{ .Values.config.fileName }}"

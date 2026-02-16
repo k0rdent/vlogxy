@@ -16,8 +16,9 @@ type Server struct {
 	// PathPrefix defines path_prefix for all targets
 	PathPrefix string `yaml:"path_prefix"`
 	// Scheme for all targets (http or https)
-	Scheme     string           `yaml:"scheme"`
-	HttpClient HTTPClientConfig `yaml:"http_client"`
+	Scheme string `yaml:"scheme"`
+	// HttpClientConfig defines the HTTP client configuration for this server group
+	HttpClientConfig HTTPClientConfig `yaml:"http_client"`
 }
 
 // HTTPClientConfig defines the http client TLS and BasicAuth config
@@ -46,20 +47,20 @@ func (s Server) URL(path, query string) string {
 
 // Username returns the basic auth username
 func (s Server) Username() string {
-	return s.HttpClient.BasicAuth.Username
+	return s.HttpClientConfig.BasicAuth.Username
 }
 
 // Password returns the basic auth password
 func (s Server) Password() string {
-	return s.HttpClient.BasicAuth.Password
+	return s.HttpClientConfig.BasicAuth.Password
 }
 
 func (s Server) HTTPClient() *http.Client {
 	return &http.Client{
-		Timeout: s.HttpClient.DialTimeout.Duration,
+		Timeout: s.HttpClientConfig.DialTimeout.Duration,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: s.HttpClient.TLSConfig.InsecureSkipVerify,
+				InsecureSkipVerify: s.HttpClientConfig.TLSConfig.InsecureSkipVerify,
 			},
 		},
 	}

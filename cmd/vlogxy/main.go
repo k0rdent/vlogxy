@@ -1,8 +1,9 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"os"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/k0rdent/vlogxy/internal/config"
@@ -12,28 +13,41 @@ import (
 )
 
 const (
-	defaultPort       = "8085"
-	defaultConfigPath = "/etc/vlogxy/config.yaml"
-	shutdownTimeout   = 30 * time.Second
-	readHeaderTimeout = 10 * time.Second
+	defaultPort = "8085"
 )
 
 func main() {
+	port := flag.String("port", defaultPort, "Port to run the server on")
+	debug := flag.Bool("debug", false, "Enable debug logging")
+	configPath := flag.String("config", "", "Path to configuration file (overrides CONFIG_PATH env variable)")
+	flag.Parse()
 
 	// Setup logger
 	logger := log.New()
 	logger.SetFormatter(&log.JSONFormatter{})
-	logger.SetLevel(log.DebugLevel)
+
+	// Set log level based on debug flag
+	if *debug {
+		logger.SetLevel(log.DebugLevel)
+		gin.SetMode(gin.DebugMode)
+	} else {
+		logger.SetLevel(log.InfoLevel)
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	gin.DefaultWriter = logger.Writer()
 	gin.DefaultErrorWriter = logger.WriterLevel(log.ErrorLevel)
 
 	// Load configuration
-	configPath := os.Getenv("CONFIG_PATH")
-	if configPath == "" {
-		log.Fatalln("CONFIG_PATH environment variable is not set")
+	cfgPath := *configPath
+	if cfgPath == "" {
+		cfgPath = os.Getenv("CONFIG_PATH")
+	}
+	if cfgPath == "" {
+		log.Fatalln("CONFIG_PATH environment variable is not set and --config flag is not provided")
 	}
 
-	conf, err := config.LoadConfig(configPath)
+	conf, err := config.LoadConfig(cfgPath)
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
 	}
@@ -45,8 +59,9 @@ func main() {
 	router.SetupRoutes(r, handlerInstance)
 
 	// Start server
-	log.Info("Starting server on :8085")
-	if err := r.Run(":8085"); err != nil {
+	addr := fmt.Sprintf(":%s", *port)
+	log.Infof("Starting server on %s (debug=%v)", addr, *debug)
+	if err := r.Run(addr); err != nil {
 		log.Panicf("failed to start server: %v", err)
 	}
 }
