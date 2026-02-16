@@ -62,13 +62,6 @@ func (c *Config) GetServerGroups() []servergroup.Server {
 	return c.data.ServerGroups
 }
 
-// GetData returns a copy of the configuration data (for backward compatibility)
-func (c *Config) GetData() ConfigData {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-	return *c.data
-}
-
 func readConfigData(path string) (*ConfigData, error) {
 	rawConfig, err := os.ReadFile(path)
 	if err != nil {
