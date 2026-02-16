@@ -9,9 +9,9 @@ import (
 )
 
 type Server struct {
-	// Target address:port list for promxy Prometheus server group static_configs
+	// Target address:port for the VictoriaLogs server
 	Target string `yaml:"target"`
-	// ClusterName is the promxyCluster label value
+	// ClusterName is the cluster label value
 	ClusterName string `yaml:"cluster_name"`
 	// PathPrefix defines path_prefix for all targets
 	PathPrefix string `yaml:"path_prefix"`
@@ -20,7 +20,7 @@ type Server struct {
 	HttpClient HTTPClientConfig `yaml:"http_client"`
 }
 
-// HTTPClientConfig defines the http client TLS and BasicAuth config for Prometheus
+// HTTPClientConfig defines the http client TLS and BasicAuth config
 type HTTPClientConfig struct {
 	// DialTimeout in the string representation (e.g. 1s)
 	DialTimeout metav1.Duration `yaml:"dial_timeout"`
@@ -28,25 +28,28 @@ type HTTPClientConfig struct {
 	BasicAuth   BasicAuth       `yaml:"basic_auth"`
 }
 
-// BasicAuth part of prometheus HTTPClientConfig with yaml annotation
+// BasicAuth credentials for HTTP authentication
 type BasicAuth struct {
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
 }
 
-// TLSConfig part of prometheus HTTPClientConfig with yaml annotation
+// TLSConfig for HTTPS connections
 type TLSConfig struct {
 	InsecureSkipVerify bool `yaml:"insecure_skip_verify"`
 }
 
+// URL constructs the full URL for a given path and query
 func (s Server) URL(path, query string) string {
 	return common.BuildURL(s.Scheme, s.Target, s.PathPrefix+path, query)
 }
 
+// Username returns the basic auth username
 func (s Server) Username() string {
 	return s.HttpClient.BasicAuth.Username
 }
 
+// Password returns the basic auth password
 func (s Server) Password() string {
 	return s.HttpClient.BasicAuth.Password
 }

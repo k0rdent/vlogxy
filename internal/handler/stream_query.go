@@ -9,8 +9,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// StreamQuery handles streaming of log query responses from multiple backends
 type StreamQuery struct{}
 
+// NewStreamQuery creates a new StreamQuery aggregator instance
 func NewStreamQuery() interfaces.StreamResponseAggregator[[]byte] {
 	return &StreamQuery{}
 }

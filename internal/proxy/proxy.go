@@ -32,8 +32,8 @@ func (p *Proxy[T]) ProxyRequest(aggregator interfaces.ResponseAggregator[T]) {
 	ctx := p.ginContext.Request.Context()
 	respChan := collectResponses(ctx, p.serverGroup, p.ginContext.Request.URL)
 	result := make([]T, 0, len(p.serverGroup))
-	wg := sync.WaitGroup{}
-	mu := sync.Mutex{}
+	wg := &sync.WaitGroup{}
+	mu := &sync.Mutex{}
 
 	for resp := range respChan {
 		wg.Go(func() {
@@ -55,8 +55,8 @@ func (p *Proxy[T]) ProxyRequest(aggregator interfaces.ResponseAggregator[T]) {
 			}
 
 			mu.Lock()
-			defer mu.Unlock()
 			result = append(result, parsedResp)
+			mu.Unlock()
 		})
 	}
 	wg.Wait()

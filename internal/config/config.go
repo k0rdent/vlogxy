@@ -16,6 +16,7 @@ type Config struct {
 	mutex sync.RWMutex
 }
 
+// ConfigData represents the structure of the configuration file
 type ConfigData struct {
 	ServerGroups []servergroup.Server `yaml:"server_groups"`
 }

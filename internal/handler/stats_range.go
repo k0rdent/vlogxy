@@ -12,6 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// StatsRangeResponse represents the response structure for stats range queries
 type StatsRangeResponse struct {
 	Data struct {
 		ResultType string             `json:"resultType"`
@@ -20,13 +21,16 @@ type StatsRangeResponse struct {
 	Status string `json:"status"`
 }
 
+// StatsRangeSeries represents a time series with multiple values
 type StatsRangeSeries struct {
 	Metric map[string]string  `json:"metric"`
 	Values []common.ValuePair `json:"values"`
 }
 
+// StatsRange handles aggregation of stats range query responses from multiple backends
 type StatsRange struct{}
 
+// NewStatsRange creates a new StatsRange aggregator instance
 func NewStatsRange() interfaces.ResponseAggregator[StatsRangeResponse] {
 	return &StatsRange{}
 }

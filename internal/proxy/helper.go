@@ -12,39 +12,43 @@ import (
 )
 
 func newRequest(ctx context.Context, server servergroup.Server, originalURL *url.URL) (*http.Response, error) {
-	url := server.URL(originalURL.Path, originalURL.RawQuery)
+	targetURL := server.URL(originalURL.Path, originalURL.RawQuery)
 	httpClient := server.HTTPClient()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, targetURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request for %s: %v", url, err)
+		return nil, fmt.Errorf("failed to create request for %s: %w", targetURL, err)
 	}
+
 	req.Header.Set("Content-Type", "application/json")
 	req.SetBasicAuth(server.Username(), server.Password())
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to make request to %s: %v", server.Target, err)
+		return nil, fmt.Errorf("failed to make request to %s: %w", server.Target, err)
 	}
 
 	return resp, nil
 }
 
 func collectResponses(ctx context.Context, serverGroup []servergroup.Server, originalURL *url.URL) <-chan *http.Response {
-	wg := sync.WaitGroup{}
+	wg := &sync.WaitGroup{}
 	ch := make(chan *http.Response, len(serverGroup))
 
 	for i := range serverGroup {
+		server := serverGroup[i]
 		wg.Go(func() {
-			server := serverGroup[i]
-
 			resp, err := newRequest(ctx, server, originalURL)
 			if err != nil {
 				log.Errorf("failed to make request to %s: %v", server.Target, err)
 				return
 			}
 
-			ch <- resp
+			select {
+			case <-ctx.Done():
+				return
+			case ch <- resp:
+			}
 		})
 	}
 

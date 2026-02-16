@@ -11,54 +11,57 @@ import (
 
 // Handler holds dependencies for all HTTP handlers
 type Handler struct {
-	config interfaces.ConfigProvider
+	config     interfaces.ConfigProvider
+	httpClient interfaces.HTTPClient
 }
 
 // NewHandler creates a new handler instance with dependencies
 func NewHandler(config interfaces.ConfigProvider) *Handler {
 	return &Handler{
-		config: config,
+		config:     config,
+		httpClient: http.DefaultClient,
 	}
 }
 
 // ProxyQuery handles /select/logsql/query endpoint
 func (h *Handler) ProxyQuery(c *gin.Context) {
 	query := NewQuery()
-	proxy := proxy.NewProxy[Logs](h.config.GetServerGroups(), http.DefaultClient, c)
-	proxy.ProxyRequest(query)
+	proxyInstance := proxy.NewProxy[Logs](h.config.GetServerGroups(), h.httpClient, c)
+	proxyInstance.ProxyRequest(query)
 }
 
 // ProxyStats handles /select/logsql/stats_query endpoint
 func (h *Handler) ProxyStats(c *gin.Context) {
 	query := NewStats()
-	proxy := proxy.NewProxy[StatsResponse](h.config.GetServerGroups(), http.DefaultClient, c)
-	proxy.ProxyRequest(query)
+	proxyInstance := proxy.NewProxy[StatsResponse](h.config.GetServerGroups(), h.httpClient, c)
+	proxyInstance.ProxyRequest(query)
 }
 
 // ProxyStatsRange handles /select/logsql/stats_query_range endpoint
 func (h *Handler) ProxyStatsRange(c *gin.Context) {
 	query := NewStatsRange()
-	proxy := proxy.NewProxy[StatsRangeResponse](h.config.GetServerGroups(), http.DefaultClient, c)
-	proxy.ProxyRequest(query)
+	proxyInstance := proxy.NewProxy[StatsRangeResponse](h.config.GetServerGroups(), h.httpClient, c)
+	proxyInstance.ProxyRequest(query)
 }
 
 // ProxyHits handles /select/logsql/hits endpoint
 func (h *Handler) ProxyHits(c *gin.Context) {
 	query := NewHits()
-	proxy := proxy.NewProxy[Response](h.config.GetServerGroups(), http.DefaultClient, c)
-	proxy.ProxyRequest(query)
+	proxyInstance := proxy.NewProxy[Response](h.config.GetServerGroups(), h.httpClient, c)
+	proxyInstance.ProxyRequest(query)
 }
 
 // ProxyFieldValues handles /select/logsql/field_values endpoint
 func (h *Handler) ProxyFieldValues(c *gin.Context) {
 	query := NewFieldValuesQuery()
-	proxy := proxy.NewProxy[FieldValuesResponse](h.config.GetServerGroups(), http.DefaultClient, c)
-	proxy.ProxyRequest(query)
+	proxyInstance := proxy.NewProxy[FieldValuesResponse](h.config.GetServerGroups(), h.httpClient, c)
+	proxyInstance.ProxyRequest(query)
 }
 
+// StreamQuery handles /select/logsql/query endpoint with streaming
 func (h *Handler) StreamQuery(c *gin.Context) {
 	query := NewStreamQuery()
-	streamProxy := proxy.NewStreamProxy[[]byte](h.config.GetServerGroups(), http.DefaultClient, c)
+	streamProxy := proxy.NewStreamProxy[[]byte](h.config.GetServerGroups(), h.httpClient, c)
 	streamProxy.ProxyRequest(query)
 }
 
@@ -67,13 +70,16 @@ func (h *Handler) ReloadConfig(c *gin.Context) {
 	if err := h.config.Reload(); err != nil {
 		log.Errorf("failed to reload configuration: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "error",
 			"message": "Failed to reload configuration",
 			"error":   err.Error(),
 		})
 		return
 	}
 
+	log.Info("Configuration reloaded successfully")
 	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
 		"message": "Configuration reloaded successfully",
 	})
 }
@@ -81,6 +87,6 @@ func (h *Handler) ReloadConfig(c *gin.Context) {
 // HealthCheck handles /health endpoint
 func (h *Handler) HealthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"status": "I'm alive",
+		"status": "healthy",
 	})
 }

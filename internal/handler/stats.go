@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// StatsResponse represents the response structure for stats queries
 type StatsResponse struct {
 	Data struct {
 		ResultType string        `json:"resultType"`
@@ -19,13 +20,16 @@ type StatsResponse struct {
 	Status string `json:"status"`
 }
 
+// StatsSeries represents a single time series in stats response
 type StatsSeries struct {
 	Metric map[string]string `json:"metric"`
 	Value  common.ValuePair  `json:"value"`
 }
 
+// Stats handles aggregation of stats query responses from multiple backends
 type Stats struct{}
 
+// NewStats creates a new Stats aggregator instance
 func NewStats() interfaces.ResponseAggregator[StatsResponse] {
 	return &Stats{}
 }

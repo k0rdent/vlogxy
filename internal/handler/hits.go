@@ -9,10 +9,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Response represents the response structure for hits queries
 type Response struct {
 	HitsArr []Hits `json:"hits"`
 }
 
+// Hits represents aggregated hit data for a specific field combination
 type Hits struct {
 	Fields     map[string]string `json:"fields"`
 	Timestamps []string          `json:"timestamps"`
@@ -20,8 +22,10 @@ type Hits struct {
 	Total      int               `json:"total"`
 }
 
+// HitsQuery handles aggregation of hits query responses from multiple backends
 type HitsQuery struct{}
 
+// NewHits creates a new HitsQuery aggregator instance
 func NewHits() interfaces.ResponseAggregator[Response] {
 	return &HitsQuery{}
 }

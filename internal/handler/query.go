@@ -6,17 +6,19 @@ import (
 	"net/http"
 
 	"github.com/k0rdent/vlogxy/internal/interfaces"
-	"github.com/k0rdent/vlogxy/pkg/common"
 	log "github.com/sirupsen/logrus"
 )
 
+// Logs represents a collection of log entries
 type Logs []Log
+
+// Log represents a single log entry as a map of fields
 type Log map[string]any
 
-type Query struct {
-	*common.RequestPath
-}
+// Query handles aggregation of log query responses from multiple backends
+type Query struct{}
 
+// NewQuery creates a new Query aggregator instance
 func NewQuery() interfaces.ResponseAggregator[Logs] {
 	return &Query{}
 }

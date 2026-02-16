@@ -8,17 +8,21 @@ import (
 	"github.com/k0rdent/vlogxy/pkg/common"
 )
 
+// FieldValuesResponse represents the response structure for field values queries
 type FieldValuesResponse struct {
 	Values []Value `json:"values"`
 }
 
+// Value represents a single field value with its hit count
 type Value struct {
 	Value string `json:"value"`
 	Hits  int    `json:"hits"`
 }
 
+// FieldValuesQuery handles aggregation of field values query responses from multiple backends
 type FieldValuesQuery struct{}
 
+// NewFieldValuesQuery creates a new FieldValuesQuery aggregator instance
 func NewFieldValuesQuery() interfaces.ResponseAggregator[FieldValuesResponse] {
 	return &FieldValuesQuery{}
 }

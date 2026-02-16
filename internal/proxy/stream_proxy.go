@@ -42,9 +42,15 @@ func (s *StreamProxy[T]) ProxyRequest(aggregator interfaces.StreamResponseAggreg
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	dataChan := s.collectStreamData(ctx, aggregator)
+	s.streamToClient(ctx, dataChan)
+}
+
+// collectStreamData spawns goroutines to collect data from all backends
+func (s *StreamProxy[T]) collectStreamData(ctx context.Context, aggregator interfaces.StreamResponseAggregator[T]) <-chan []byte {
 	respChan := collectResponses(ctx, s.serverGroup, s.ginContext.Request.URL)
 	dataChan := make(chan []byte)
-	wg := sync.WaitGroup{}
+	wg := &sync.WaitGroup{}
 
 	for resp := range respChan {
 		wg.Go(func() {
@@ -68,6 +74,11 @@ func (s *StreamProxy[T]) ProxyRequest(aggregator interfaces.StreamResponseAggreg
 		close(dataChan)
 	}()
 
+	return dataChan
+}
+
+// streamToClient reads from dataChan and streams sorted batches to the client
+func (s *StreamProxy[T]) streamToClient(ctx context.Context, dataChan <-chan []byte) {
 	buffer := make([]map[string]any, 0, bufferSize)
 	remainingLimit := s.limit
 
@@ -76,42 +87,28 @@ func (s *StreamProxy[T]) ProxyRequest(aggregator interfaces.StreamResponseAggreg
 		case <-ctx.Done():
 			log.Warn("client disconnected, stopping stream")
 			return false
-		case output, ok := <-dataChan:
+		case data, ok := <-dataChan:
 			if !ok {
+				s.flushBuffer(w, buffer)
 				return false
 			}
 
-			var item map[string]any
-			if err := json.Unmarshal(output, &item); err != nil {
+			item, err := s.unmarshalItem(data)
+			if err != nil {
 				log.Errorf("failed to unmarshal streaming data: %v", err)
 				return false
 			}
 
 			buffer = append(buffer, item)
 
-			if len(buffer) == bufferSize || (remainingLimit > 0 && len(buffer) >= remainingLimit) {
-				s.sortBuffer(buffer)
-
-				for _, sortedItem := range buffer {
-					sortedData, err := json.Marshal(sortedItem)
-					if err != nil {
-						log.Errorf("failed to marshal sorted item: %v", err)
-						continue
-					}
-					if _, err := w.Write(sortedData); err != nil {
-						log.Errorf("failed to write sorted data: %v", err)
-						return false
-					}
-					if _, err := w.Write([]byte("\n")); err != nil {
-						log.Errorf("failed to write newline: %v", err)
-						return false
-					}
+			if s.shouldFlushBuffer(buffer, remainingLimit) {
+				if !s.writeBuffer(w, buffer) {
+					return false
 				}
-
 				remainingLimit -= len(buffer)
 				buffer = buffer[:0]
 
-				if remainingLimit <= 0 && s.limit > 0 {
+				if s.limitReached(remainingLimit) {
 					return false
 				}
 			}
@@ -119,27 +116,65 @@ func (s *StreamProxy[T]) ProxyRequest(aggregator interfaces.StreamResponseAggreg
 			return true
 		}
 	})
+}
 
-	if len(buffer) > 0 {
-		s.sortBuffer(buffer)
+// unmarshalItem unmarshals JSON data into a map
+func (s *StreamProxy[T]) unmarshalItem(data []byte) (map[string]any, error) {
+	var item map[string]any
+	if err := json.Unmarshal(data, &item); err != nil {
+		return nil, err
+	}
+	return item, nil
+}
 
-		w := s.ginContext.Writer
-		for _, sortedItem := range buffer {
-			sortedData, err := json.Marshal(sortedItem)
-			if err != nil {
-				log.Errorf("failed to marshal sorted item: %v", err)
-				continue
-			}
-			if _, err := w.Write(sortedData); err != nil {
-				log.Errorf("failed to write sorted data: %v", err)
-				break
-			}
-			if _, err := w.Write([]byte("\n")); err != nil {
-				log.Errorf("failed to write newline: %v", err)
-				break
-			}
+// shouldFlushBuffer determines if the buffer should be flushed
+func (s *StreamProxy[T]) shouldFlushBuffer(buffer []map[string]any, remainingLimit int) bool {
+	return len(buffer) >= bufferSize || (remainingLimit > 0 && len(buffer) >= remainingLimit)
+}
+
+// limitReached checks if the output limit has been reached
+func (s *StreamProxy[T]) limitReached(remainingLimit int) bool {
+	return remainingLimit <= 0 && s.limit > 0
+}
+
+// writeBuffer sorts and writes the buffer to the writer
+func (s *StreamProxy[T]) writeBuffer(w io.Writer, buffer []map[string]any) bool {
+	s.sortBuffer(buffer)
+
+	for _, item := range buffer {
+		if !s.writeItem(w, item) {
+			return false
 		}
 	}
+	return true
+}
+
+// flushBuffer writes any remaining items in the buffer
+func (s *StreamProxy[T]) flushBuffer(w io.Writer, buffer []map[string]any) {
+	if len(buffer) > 0 {
+		s.writeBuffer(w, buffer)
+	}
+}
+
+// writeItem marshals and writes a single item to the writer
+func (s *StreamProxy[T]) writeItem(w io.Writer, item map[string]any) bool {
+	data, err := json.Marshal(item)
+	if err != nil {
+		log.Errorf("failed to marshal item: %v", err)
+		return false
+	}
+
+	if _, err := w.Write(data); err != nil {
+		log.Errorf("failed to write data: %v", err)
+		return false
+	}
+
+	if _, err := w.Write([]byte("\n")); err != nil {
+		log.Errorf("failed to write newline: %v", err)
+		return false
+	}
+
+	return true
 }
 
 func (s *StreamProxy[T]) sortBuffer(buffer []map[string]any) {
