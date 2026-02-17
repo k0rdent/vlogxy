@@ -1,0 +1,29 @@
+name: Test vlogxy
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    branches:
+      - main
+      - release/*
+
+jobs:
+  test:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - uses: ./.github/actions/shared-setup
+      - name: Fetch PR Ref and Checkout Repo
+        uses: ./.github/actions/fetch-pr-ref
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: ./go.mod
+          cache-dependency-path: ./go.sum
+      - name: Run Unit Tests
+        run: make test
