@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 
 	"github.com/k0rdent/vlogxy/internal/interfaces"
 	"github.com/k0rdent/vlogxy/pkg/common"
@@ -72,12 +73,25 @@ func (h *HitsQuery) Merge(responses []Response) ([]byte, error) {
 	}
 
 	for _, g := range fieldGroups {
-		timestamps := make([]string, 0, len(g.timestamps))
-		values := make([]int, 0, len(g.timestamps))
+		type tsValue struct {
+			timestamp string
+			value     int
+		}
 
+		pairs := make([]tsValue, 0, len(g.timestamps))
 		for ts, val := range g.timestamps {
-			timestamps = append(timestamps, ts)
-			values = append(values, val)
+			pairs = append(pairs, tsValue{timestamp: ts, value: val})
+		}
+
+		sort.Slice(pairs, func(i, j int) bool {
+			return pairs[i].timestamp < pairs[j].timestamp
+		})
+
+		timestamps := make([]string, len(pairs))
+		values := make([]int, len(pairs))
+		for i, pair := range pairs {
+			timestamps[i] = pair.timestamp
+			values[i] = pair.value
 		}
 
 		mergedResponse.HitsArr = append(mergedResponse.HitsArr, Hits{

@@ -18,7 +18,7 @@ type Config struct {
 
 // ConfigData represents the structure of the configuration file
 type ConfigData struct {
-	ServerGroups []servergroup.Server `yaml:"server_groups"`
+	ServerGroups []*servergroup.Server `yaml:"server_groups"`
 }
 
 // LoadConfig loads configuration from the specified path
@@ -33,9 +33,8 @@ func LoadConfig(path string) (*Config, error) {
 	}
 
 	config := &Config{
-		data:  configData,
-		path:  path,
-		mutex: sync.RWMutex{},
+		data: configData,
+		path: path,
 	}
 
 	return config, nil
@@ -56,10 +55,17 @@ func (c *Config) Reload() error {
 }
 
 // GetServerGroups returns the list of configured server groups
-func (c *Config) GetServerGroups() []servergroup.Server {
+func (c *Config) GetServerGroups() []*servergroup.Server {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	return c.data.ServerGroups
+}
+
+// IsEmpty checks if the configuration has any server groups defined
+func (c *Config) IsEmpty() bool {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return len(c.data.ServerGroups) == 0
 }
 
 func readConfigData(path string) (*ConfigData, error) {

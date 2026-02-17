@@ -91,6 +91,15 @@ func (s *Stats) Merge(responses []StatsResponse) ([]byte, error) {
 			continue
 		}
 
+		if len(tsMap) == 0 {
+			log.Errorf("no timestamps found for metric %v", metric)
+			continue
+		}
+		if len(tsMap) != 1 {
+			log.Errorf("expected exactly one timestamp for metric %v, got %d", metric, len(tsMap))
+			continue
+		}
+
 		var ts float64
 		var sum int64
 		for t, s := range tsMap {

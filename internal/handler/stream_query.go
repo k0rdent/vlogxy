@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"net/http"
 
@@ -27,8 +28,7 @@ func (s *StreamQuery) StreamParseResponse(ctx context.Context, resp *http.Respon
 	}()
 
 	for scanner.Scan() {
-		data := make([]byte, len(scanner.Bytes()))
-		copy(data, scanner.Bytes())
+		data := bytes.Clone(scanner.Bytes())
 
 		select {
 		case <-ctx.Done():

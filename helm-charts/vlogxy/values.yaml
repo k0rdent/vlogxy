@@ -48,7 +48,7 @@ config:
   fileName: config.yaml
   # Configuration data
   data:
-    server_groups:
-      - cluster_name: "test_cluster"
-        target: "victoria-logs-storage.example.com"
-        scheme: "https"
+    # server_groups:
+    #   - cluster_name: "test_cluster"
+    #     target: "victoria-logs-storage.example.com"
+    #     scheme: "https"

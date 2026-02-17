@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func newRequest(ctx context.Context, server servergroup.Server, originalURL *url.URL) (*http.Response, error) {
+func newRequest(ctx context.Context, server *servergroup.Server, originalURL *url.URL) (*http.Response, error) {
 	targetURL := server.URL(originalURL.Path, originalURL.RawQuery)
 	httpClient := server.HTTPClient()
 
@@ -31,13 +31,13 @@ func newRequest(ctx context.Context, server servergroup.Server, originalURL *url
 	return resp, nil
 }
 
-func collectResponses(ctx context.Context, serverGroup []servergroup.Server, originalURL *url.URL) <-chan *http.Response {
+func collectResponses(ctx context.Context, serverGroup []*servergroup.Server, originalURL *url.URL) <-chan *http.Response {
 	wg := &sync.WaitGroup{}
 	ch := make(chan *http.Response, len(serverGroup))
 
 	for i := range serverGroup {
-		server := serverGroup[i]
 		wg.Go(func() {
+			server := serverGroup[i]
 			resp, err := newRequest(ctx, server, originalURL)
 			if err != nil {
 				log.Errorf("failed to make request to %s: %v", server.Target, err)

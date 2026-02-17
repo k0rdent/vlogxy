@@ -10,7 +10,7 @@ import (
 // ConfigProvider provides access to application configuration
 type ConfigProvider interface {
 	// GetServerGroups returns the list of server groups to query
-	GetServerGroups() []servergroup.Server
+	GetServerGroups() []*servergroup.Server
 	// Reload reloads the configuration from source
 	Reload() error
 }

@@ -15,20 +15,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const bufferSize = 5
+const bufferSize = 50
 
 type StreamProxyGroup[T any] interface {
 	ProxyRequest(interfaces.StreamResponseAggregator[T])
 }
 
 type StreamProxy[T any] struct {
-	serverGroup []servergroup.Server
+	serverGroup []*servergroup.Server
 	httpClient  interfaces.HTTPClient
 	ginContext  *gin.Context
 	limit       int
 }
 
-func NewStreamProxy[T any](serverGroup []servergroup.Server, httpClient interfaces.HTTPClient, c *gin.Context) StreamProxyGroup[T] {
+func NewStreamProxy[T any](serverGroup []*servergroup.Server, httpClient interfaces.HTTPClient, c *gin.Context) StreamProxyGroup[T] {
 	return &StreamProxy[T]{
 		serverGroup: serverGroup,
 		httpClient:  httpClient,
@@ -184,7 +184,7 @@ func (s *StreamProxy[T]) sortBuffer(buffer []map[string]any) {
 		if !okI || !okJ {
 			return false
 		}
-		return tsI < tsJ
+		return tsI > tsJ
 	})
 }
 

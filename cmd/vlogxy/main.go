@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/k0rdent/vlogxy/internal/config"
 	"github.com/k0rdent/vlogxy/internal/handler"
+	"github.com/k0rdent/vlogxy/internal/middleware"
 	"github.com/k0rdent/vlogxy/internal/router"
 	log "github.com/sirupsen/logrus"
 )
@@ -54,8 +55,12 @@ func main() {
 
 	handlerInstance := handler.NewHandler(conf)
 
-	// Setup router
 	r := gin.Default()
+
+	// Add middleware to check for empty configuration
+	r.Use(middleware.EmptyConfigMiddleware(conf))
+
+	// Setup router
 	router.SetupRoutes(r, handlerInstance)
 
 	// Start server

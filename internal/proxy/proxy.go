@@ -15,12 +15,12 @@ type ProxyGroup[T any] interface {
 }
 
 type Proxy[T any] struct {
-	serverGroup []servergroup.Server
+	serverGroup []*servergroup.Server
 	httpClient  interfaces.HTTPClient
 	ginContext  *gin.Context
 }
 
-func NewProxy[T any](serverGroup []servergroup.Server, httpClient interfaces.HTTPClient, c *gin.Context) ProxyGroup[T] {
+func NewProxy[T any](serverGroup []*servergroup.Server, httpClient interfaces.HTTPClient, c *gin.Context) ProxyGroup[T] {
 	return &Proxy[T]{
 		serverGroup: serverGroup,
 		httpClient:  httpClient,

@@ -20,7 +20,7 @@ var _ = Describe("StreamQuery Memory Leak Tests", func() {
 	var (
 		testServer  *httptest.Server
 		backends    []*httptest.Server
-		serverGroup []servergroup.Server
+		serverGroup []*servergroup.Server
 	)
 
 	closeServers := func() {
@@ -38,17 +38,18 @@ var _ = Describe("StreamQuery Memory Leak Tests", func() {
 
 	setupBackends := func(numBackends int, dataSize int) {
 		backends = make([]*httptest.Server, numBackends)
-		serverGroup = make([]servergroup.Server, numBackends)
+		serverGroup = make([]*servergroup.Server, numBackends)
 
 		for i := range numBackends {
 			serverNum := i
 			backends[i] = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				data := strings.Repeat(fmt.Sprintf(`{"_time":1234567890.123,"_msg":"test from server%d"}`+"\n", serverNum+1), dataSize)
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(data))
+				_, err := w.Write([]byte(data))
+				Expect(err).NotTo(HaveOccurred())
 			}))
 
-			serverGroup[i] = servergroup.Server{
+			serverGroup[i] = &servergroup.Server{
 				ClusterName: fmt.Sprintf("test-server-%d", i+1),
 				Target:      strings.TrimPrefix(backends[i].URL, "http://"),
 				Scheme:      "http",
