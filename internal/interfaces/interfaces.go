@@ -11,6 +11,8 @@ import (
 type ConfigProvider interface {
 	// GetServerGroups returns the list of server groups to query
 	GetServerGroups() []*servergroup.Server
+	// GetMaxLogsLimit returns the maximum number of logs to return in a query
+	GetMaxLogsLimit() int
 	// Reload reloads the configuration from source
 	Reload() error
 }

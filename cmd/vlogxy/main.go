@@ -50,12 +50,12 @@ func main() {
 		log.Fatalln("CONFIG_PATH environment variable is not set and --config flag is not provided")
 	}
 
-	conf, err := config.LoadConfig(cfgPath)
+	conf, err := config.NewConfig(cfgPath, *logsLimit)
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
-	handlerInstance := handler.NewHandler(conf, *logsLimit)
+	handlerInstance := handler.NewHandler(conf)
 
 	r := gin.Default()
 

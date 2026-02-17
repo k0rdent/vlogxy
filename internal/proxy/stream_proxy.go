@@ -28,11 +28,11 @@ type StreamProxy[T any] struct {
 	limit       int
 }
 
-func NewStreamProxy[T any](serverGroup []*servergroup.Server, httpClient interfaces.HTTPClient, c *gin.Context, maxLogsLimit int) StreamProxyGroup[T] {
+func NewStreamProxy[T any](config interfaces.ConfigProvider, httpClient interfaces.HTTPClient, c *gin.Context) StreamProxyGroup[T] {
 	return &StreamProxy[T]{
-		serverGroup: serverGroup,
+		serverGroup: config.GetServerGroups(),
 		httpClient:  httpClient,
-		limit:       getLimit(c, maxLogsLimit),
+		limit:       getLimit(c, config.GetMaxLogsLimit()),
 		ginContext:  c,
 	}
 }
@@ -49,7 +49,7 @@ func (s *StreamProxy[T]) ProxyRequest(aggregator interfaces.StreamResponseAggreg
 // collectStreamData spawns goroutines to collect data from all backends
 func (s *StreamProxy[T]) collectStreamData(ctx context.Context, aggregator interfaces.StreamResponseAggregator[T]) <-chan []byte {
 	respChan := collectResponses(ctx, s.serverGroup, s.ginContext.Request.URL)
-	dataChan := make(chan []byte)
+	dataChan := make(chan []byte, 100)
 	wg := &sync.WaitGroup{}
 
 	for resp := range respChan {

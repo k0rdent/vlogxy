@@ -9,11 +9,17 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/k0rdent/vlogxy/internal/config"
 	"github.com/k0rdent/vlogxy/internal/handler"
+	"github.com/k0rdent/vlogxy/internal/interfaces"
 	"github.com/k0rdent/vlogxy/internal/proxy"
 	servergroup "github.com/k0rdent/vlogxy/internal/server-group"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+)
+
+const (
+	maxLogsLimit = 100000
 )
 
 var _ = Describe("StreamQuery Memory Leak Tests", func() {
@@ -57,11 +63,16 @@ var _ = Describe("StreamQuery Memory Leak Tests", func() {
 		}
 	}
 
+	getFakeConfig := func(serverGroups []*servergroup.Server, maxLogsLimit int) interfaces.ConfigProvider {
+		return config.GetFakeConfig(serverGroups, maxLogsLimit)
+	}
+
 	setupTestServer := func() {
+		config := getFakeConfig(serverGroup, maxLogsLimit)
 		router := gin.New()
 		router.GET("/select/logsql/query", func(c *gin.Context) {
 			query := handler.NewStreamQuery()
-			proxyInstance := proxy.NewStreamProxy[[]byte](serverGroup, http.DefaultClient, c, 100000)
+			proxyInstance := proxy.NewStreamProxy[[]byte](config, http.DefaultClient, c)
 			proxyInstance.ProxyRequest(query)
 		})
 		testServer = httptest.NewServer(router)

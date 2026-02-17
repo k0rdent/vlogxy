@@ -13,14 +13,12 @@ import (
 type Handler struct {
 	config     interfaces.ConfigProvider
 	httpClient interfaces.HTTPClient
-	logsLimit  int
 }
 
 // NewHandler creates a new handler instance with dependencies
-func NewHandler(config interfaces.ConfigProvider, logsLimit int) *Handler {
+func NewHandler(config interfaces.ConfigProvider) *Handler {
 	return &Handler{
 		config:     config,
-		logsLimit:  logsLimit,
 		httpClient: http.DefaultClient,
 	}
 }
@@ -56,7 +54,7 @@ func (h *Handler) ProxyFieldValues(c *gin.Context) {
 // StreamQuery handles /select/logsql/query endpoint with streaming
 func (h *Handler) StreamQuery(c *gin.Context) {
 	query := NewStreamQuery()
-	streamProxy := proxy.NewStreamProxy[[]byte](h.config.GetServerGroups(), h.httpClient, c, h.logsLimit)
+	streamProxy := proxy.NewStreamProxy[[]byte](h.config, h.httpClient, c)
 	streamProxy.ProxyRequest(query)
 }
 

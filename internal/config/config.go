@@ -11,9 +11,10 @@ import (
 
 // Config implements ConfigProvider interface
 type Config struct {
-	data  *ConfigData
-	path  string
-	mutex sync.RWMutex
+	data         *ConfigData
+	maxLogsLimit int
+	path         string
+	mutex        sync.RWMutex
 }
 
 // ConfigData represents the structure of the configuration file
@@ -21,8 +22,8 @@ type ConfigData struct {
 	ServerGroups []*servergroup.Server `yaml:"server_groups"`
 }
 
-// LoadConfig loads configuration from the specified path
-func LoadConfig(path string) (*Config, error) {
+// NewConfig loads configuration from the specified path
+func NewConfig(path string, maxLogsLimit int) (*Config, error) {
 	if path == "" {
 		return nil, fmt.Errorf("config path cannot be empty")
 	}
@@ -33,8 +34,9 @@ func LoadConfig(path string) (*Config, error) {
 	}
 
 	config := &Config{
-		data: configData,
-		path: path,
+		data:         configData,
+		maxLogsLimit: maxLogsLimit,
+		path:         path,
 	}
 
 	return config, nil
@@ -59,6 +61,11 @@ func (c *Config) GetServerGroups() []*servergroup.Server {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	return c.data.ServerGroups
+}
+
+// GetMaxLogsLimit returns the maximum number of logs to return in a query
+func (c *Config) GetMaxLogsLimit() int {
+	return c.maxLogsLimit
 }
 
 // IsEmpty checks if the configuration has any server groups defined
