@@ -28,11 +28,11 @@ type StreamProxy[T any] struct {
 	limit       int
 }
 
-func NewStreamProxy[T any](serverGroup []*servergroup.Server, httpClient interfaces.HTTPClient, c *gin.Context) StreamProxyGroup[T] {
+func NewStreamProxy[T any](serverGroup []*servergroup.Server, httpClient interfaces.HTTPClient, c *gin.Context, maxLogsLimit int) StreamProxyGroup[T] {
 	return &StreamProxy[T]{
 		serverGroup: serverGroup,
 		httpClient:  httpClient,
-		limit:       getLimit(c),
+		limit:       getLimit(c, maxLogsLimit),
 		ginContext:  c,
 	}
 }
@@ -158,22 +158,11 @@ func (s *StreamProxy[T]) flushBuffer(w io.Writer, buffer []map[string]any) {
 
 // writeItem marshals and writes a single item to the writer
 func (s *StreamProxy[T]) writeItem(w io.Writer, item map[string]any) bool {
-	data, err := json.Marshal(item)
-	if err != nil {
-		log.Errorf("failed to marshal item: %v", err)
+	encoder := json.NewEncoder(w)
+	if err := encoder.Encode(item); err != nil {
+		log.Errorf("failed to encode item: %v", err)
 		return false
 	}
-
-	if _, err := w.Write(data); err != nil {
-		log.Errorf("failed to write data: %v", err)
-		return false
-	}
-
-	if _, err := w.Write([]byte("\n")); err != nil {
-		log.Errorf("failed to write newline: %v", err)
-		return false
-	}
-
 	return true
 }
 
@@ -188,14 +177,17 @@ func (s *StreamProxy[T]) sortBuffer(buffer []map[string]any) {
 	})
 }
 
-func getLimit(c *gin.Context) int {
+func getLimit(c *gin.Context, maxLimit int) int {
 	limitStr := c.Query("limit")
 	if limitStr == "" {
-		return 0
+		return maxLimit
 	}
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
-		return 0
+		return maxLimit
+	}
+	if limit > maxLimit {
+		return maxLimit
 	}
 	return limit
 }

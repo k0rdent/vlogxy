@@ -14,13 +14,15 @@ import (
 )
 
 const (
-	defaultPort = "8085"
+	defaultPort      = "8085"
+	defaultLogsLimit = 1000
 )
 
 func main() {
 	port := flag.String("port", defaultPort, "Port to run the server on")
 	debug := flag.Bool("debug", false, "Enable debug logging")
 	configPath := flag.String("config", "", "Path to configuration file (overrides CONFIG_PATH env variable)")
+	logsLimit := flag.Int("logs-limit", defaultLogsLimit, "Maximum number of logs to return in `query` response")
 	flag.Parse()
 
 	// Setup logger
@@ -53,7 +55,7 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
-	handlerInstance := handler.NewHandler(conf)
+	handlerInstance := handler.NewHandler(conf, *logsLimit)
 
 	r := gin.Default()
 
