@@ -1,9 +1,10 @@
 package handler
 
 import (
+	"cmp"
 	"encoding/json"
 	"net/http"
-	"sort"
+	"slices"
 
 	"github.com/k0rdent/vlogxy/internal/interfaces"
 	"github.com/k0rdent/vlogxy/pkg/common"
@@ -83,8 +84,8 @@ func (h *HitsQuery) Merge(responses []Response) ([]byte, error) {
 			pairs = append(pairs, tsValue{timestamp: ts, value: val})
 		}
 
-		sort.Slice(pairs, func(i, j int) bool {
-			return pairs[i].timestamp < pairs[j].timestamp
+		slices.SortStableFunc(pairs, func(a, b tsValue) int {
+			return cmp.Compare(a.timestamp, b.timestamp)
 		})
 
 		timestamps := make([]string, len(pairs))

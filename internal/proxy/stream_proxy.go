@@ -1,11 +1,12 @@
 package proxy
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"io"
 	"net/http"
-	"sort"
+	"slices"
 	"strconv"
 	"sync"
 
@@ -167,13 +168,10 @@ func (s *StreamProxy[T]) writeItem(w io.Writer, item map[string]any) bool {
 }
 
 func (s *StreamProxy[T]) sortBuffer(buffer []map[string]any) {
-	sort.Slice(buffer, func(i, j int) bool {
-		tsI, okI := buffer[i]["_time"].(float64)
-		tsJ, okJ := buffer[j]["_time"].(float64)
-		if !okI || !okJ {
-			return false
-		}
-		return tsI > tsJ
+	slices.SortStableFunc(buffer, func(a, b map[string]any) int {
+		tsA := a["_time"].(float64)
+		tsB := b["_time"].(float64)
+		return cmp.Compare(tsB, tsA)
 	})
 }
 

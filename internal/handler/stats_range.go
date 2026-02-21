@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -99,15 +100,10 @@ func (s *StatsRange) Merge(responses []StatsRangeResponse) ([]byte, error) {
 			values = append(values, common.ValuePair{ts, valStr})
 		}
 
-		slices.SortFunc(values, func(a, b common.ValuePair) int {
+		slices.SortStableFunc(values, func(a, b common.ValuePair) int {
 			tsA := a[0].(float64)
 			tsB := b[0].(float64)
-			if tsA < tsB {
-				return -1
-			} else if tsA > tsB {
-				return 1
-			}
-			return 0
+			return cmp.Compare(tsA, tsB)
 		})
 
 		result.Data.Result = append(result.Data.Result, StatsRangeSeries{

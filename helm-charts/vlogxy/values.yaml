@@ -33,6 +33,17 @@ tolerations: []
 
 affinity: {}
 
+config-reloader:
+  image: "ghcr.io/jimmidyson/configmap-reload:v0.15.0"
+
+  resources:
+    limits:
+      cpu: 10m
+      memory: 64Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+
 # Configuration for the aggregator
 config:
   # Path where config will be mounted in the pod

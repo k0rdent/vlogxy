@@ -5,7 +5,7 @@ $(LOCALBIN):
 
 TEMPLATES_DIR := helm-charts
 
-DEPLOY_NAMESPACE ?= kof
+DEPLOY_NAMESPACE ?= kcm-system
 CONTAINER_TOOL ?= docker
 KIND_NETWORK ?= kind
 

@@ -18,7 +18,7 @@
 ```bash
   cd ..
   git clone git@github.com:YOUR_USERNAME/vlogxy.git
-  cd kof
+  cd vlogxy
 
   make cli-install
 ```
