@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/k0rdent/vlogxy/internal/interfaces"
@@ -169,9 +170,19 @@ func (s *StreamProxy[T]) writeItem(w io.Writer, item map[string]any) bool {
 
 func (s *StreamProxy[T]) sortBuffer(buffer []map[string]any) {
 	slices.SortStableFunc(buffer, func(a, b map[string]any) int {
-		tsA := a["_time"].(float64)
-		tsB := b["_time"].(float64)
-		return cmp.Compare(tsB, tsA)
+		tsA := a["_time"].(string)
+		tsB := b["_time"].(string)
+		timeA, err := time.Parse(time.RFC3339Nano, tsA)
+		if err != nil {
+			log.Errorf("failed to parse timestamp: %v", err)
+			return 0
+		}
+		timeB, err := time.Parse(time.RFC3339Nano, tsB)
+		if err != nil {
+			log.Errorf("failed to parse timestamp: %v", err)
+			return 0
+		}
+		return cmp.Compare(timeB.Unix(), timeA.Unix())
 	})
 }
 
