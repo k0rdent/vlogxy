@@ -170,18 +170,24 @@ func (s *StreamProxy[T]) writeItem(w io.Writer, item map[string]any) bool {
 
 func (s *StreamProxy[T]) sortBuffer(buffer []map[string]any) {
 	slices.SortStableFunc(buffer, func(a, b map[string]any) int {
-		tsA := a["_time"].(string)
-		tsB := b["_time"].(string)
+		tsA, okA := a["_time"].(string)
+		tsB, okB := b["_time"].(string)
+		if !okA || !okB {
+			return 0
+		}
+
 		timeA, err := time.Parse(time.RFC3339Nano, tsA)
 		if err != nil {
 			log.Errorf("failed to parse timestamp: %v", err)
 			return 0
 		}
+
 		timeB, err := time.Parse(time.RFC3339Nano, tsB)
 		if err != nil {
 			log.Errorf("failed to parse timestamp: %v", err)
 			return 0
 		}
+
 		return cmp.Compare(timeB.Unix(), timeA.Unix())
 	})
 }
