@@ -3,6 +3,7 @@ package proxy
 import (
 	"context"
 	"fmt"
+	"math/rand/v2"
 	"net/http"
 	"net/url"
 	"sync"
@@ -14,6 +15,10 @@ import (
 func newRequest(ctx context.Context, server *servergroup.Server, originalURL *url.URL) (*http.Response, error) {
 	var lastErr error
 	targetURLs := server.URLs(originalURL.Path, originalURL.RawQuery)
+
+	rand.Shuffle(len(targetURLs), func(i, j int) {
+		targetURLs[i], targetURLs[j] = targetURLs[j], targetURLs[i]
+	})
 
 	for _, targetURL := range targetURLs {
 		log.Debugf("Requesting data from target: %s", targetURL)
