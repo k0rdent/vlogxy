@@ -57,7 +57,7 @@ var _ = Describe("StreamQuery Memory Leak Tests", func() {
 
 			serverGroup[i] = &servergroup.Server{
 				ClusterName: fmt.Sprintf("test-server-%d", i+1),
-				Target:      strings.TrimPrefix(backends[i].URL, "http://"),
+				Targets:     []string{strings.TrimPrefix(backends[i].URL, "http://")},
 				Scheme:      "http",
 			}
 		}

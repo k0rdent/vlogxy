@@ -10,8 +10,10 @@ import (
 )
 
 type Server struct {
-	// Target address:port for the VictoriaLogs server
-	Target string `yaml:"target"`
+	// Targets is a list of VictoriaLogs server endpoints (address:port) for high availability.
+	// All endpoints are replicas with identical data. If a request fails on one,
+	// the next target in the list will be tried.
+	Targets []string `yaml:"targets"`
 	// ClusterName is the cluster label value
 	ClusterName string `yaml:"cluster_name"`
 	// PathPrefix defines path_prefix for all targets
@@ -44,9 +46,13 @@ type TLSConfig struct {
 	InsecureSkipVerify bool `yaml:"insecure_skip_verify"`
 }
 
-// URL constructs the full URL for a given path and query
-func (s *Server) URL(path, query string) string {
-	return common.BuildURL(s.Scheme, s.Target, s.PathPrefix+path, query)
+// URLs constructs the full URLs for all targets with a given path and query
+func (s *Server) URLs(path, query string) []string {
+	urls := make([]string, len(s.Targets))
+	for i, target := range s.Targets {
+		urls[i] = common.BuildURL(s.Scheme, target, s.PathPrefix+path, query)
+	}
+	return urls
 }
 
 // Username returns the basic auth username
