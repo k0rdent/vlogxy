@@ -1,0 +1,116 @@
+package handler
+
+import (
+	"cmp"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"slices"
+	"strconv"
+
+	"github.com/k0rdent/vlogxy/internal/interfaces"
+	"github.com/k0rdent/vlogxy/pkg/common"
+	log "github.com/sirupsen/logrus"
+)
+
+// StatsRangeResponse represents the response structure for stats range queries
+type StatsRangeResponse struct {
+	Data struct {
+		ResultType string             `json:"resultType"`
+		Result     []StatsRangeSeries `json:"result"`
+	} `json:"data"`
+	Status string `json:"status"`
+}
+
+// StatsRangeSeries represents a time series with multiple values
+type StatsRangeSeries struct {
+	Metric map[string]string  `json:"metric"`
+	Values []common.ValuePair `json:"values"`
+}
+
+// StatsRange handles aggregation of stats range query responses from multiple backends
+type StatsRange struct{}
+
+// NewStatsRange creates a new StatsRange aggregator instance
+func NewStatsRange() interfaces.ResponseAggregator[StatsRangeResponse] {
+	return &StatsRange{}
+}
+
+func (s *StatsRange) ParseResponse(resp *http.Response) (StatsRangeResponse, error) {
+	return common.DecodeJSONResponse[StatsRangeResponse](resp)
+}
+
+func (s *StatsRange) Merge(responses []StatsRangeResponse) ([]byte, error) {
+	groups := make(common.ValuesGroup)
+
+	for _, resp := range responses {
+		for _, series := range resp.Data.Result {
+			jsonKey, err := common.MakeJsonKey(series.Metric)
+			if err != nil {
+				log.Errorf("failed to make metric key: %v", err)
+				continue
+			}
+
+			m, ok := groups[jsonKey]
+			if !ok {
+				m = make(map[float64]int64)
+				groups[jsonKey] = m
+			}
+
+			for _, v := range series.Values {
+				ts, ok := v[0].(float64)
+				if !ok {
+					log.Errorf("failed to parse timestamp")
+					continue
+				}
+
+				val, ok := v[1].(string)
+				if !ok {
+					log.Errorf("failed to parse value")
+					continue
+				}
+
+				valInt, err := strconv.ParseInt(val, 10, 64)
+				if err != nil {
+					log.Errorf("failed to parse value as int: %v", err)
+					continue
+				}
+				m[ts] += valInt
+			}
+		}
+	}
+
+	var result StatsRangeResponse
+
+	if len(responses) > 0 {
+		result.Data.ResultType = responses[0].Data.ResultType
+		result.Status = responses[0].Status
+	}
+
+	for jsonKey, tsMap := range groups {
+		metric, err := common.ParseJsonKey(jsonKey)
+		if err != nil {
+			log.Errorf("failed to parse metric key: %v", err)
+			continue
+		}
+
+		var values []common.ValuePair
+		for ts := range tsMap {
+			valStr := fmt.Sprintf("%d", tsMap[ts])
+			values = append(values, common.ValuePair{ts, valStr})
+		}
+
+		slices.SortStableFunc(values, func(a, b common.ValuePair) int {
+			tsA := a[0].(float64)
+			tsB := b[0].(float64)
+			return cmp.Compare(tsA, tsB)
+		})
+
+		result.Data.Result = append(result.Data.Result, StatsRangeSeries{
+			Metric: metric,
+			Values: values,
+		})
+	}
+
+	return json.Marshal(result)
+}

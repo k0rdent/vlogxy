@@ -1,0 +1,58 @@
+replicaCount: 1
+
+image:
+  registry: "ghcr.io/k0rdent"
+  repository: vlogxy
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+
+service:
+  type: ClusterIP
+  port: 8085
+  targetPort: 8085
+
+# Enable debug logging
+debug: false
+
+resources:
+  limits:
+    cpu: 2
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+config-reloader:
+  image: "ghcr.io/jimmidyson/configmap-reload:v0.15.0"
+
+  resources:
+    limits:
+      cpu: 10m
+      memory: 64Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+
+# Configuration for the aggregator
+config:
+  # Path where config will be mounted in the pod
+  mountPath: /etc/vlogxy
+  # Config file name
+  fileName: config.yaml
+  # Configuration data
+  data:
+    # server_groups:
+    #   - cluster_name: "test_cluster"
+    #     target: "victoria-logs-storage.example.com"
+    #     scheme: "https"

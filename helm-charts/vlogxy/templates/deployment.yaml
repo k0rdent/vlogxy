@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "vlogxy.fullname" . }}
+  labels:
+    {{- include "vlogxy.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "vlogxy.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "vlogxy.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: vlogxy
+        args:
+        - --port={{ .Values.service.targetPort }}
+        {{- if .Values.debug }}
+        - --debug
+        {{- end }}
+        - --config={{ .Values.config.mountPath }}/{{ .Values.config.fileName }}
+        image: "{{- if .Values.image.registry }}{{ .Values.image.registry }}/{{ end }}{{ .Values.image.repository }}:{{ .Values.image.tag | default (printf "v%s" .Chart.AppVersion) }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.service.targetPort }}
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+          successThreshold: 1
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        volumeMounts:
+        - name: config
+          mountPath: {{ .Values.config.mountPath }}
+      - name: config-reloader
+        image: {{ index .Values "config-reloader" "image" }}
+        imagePullPolicy: IfNotPresent
+        args:
+        - --volume-dir={{ .Values.config.mountPath }}
+        - --webhook-url=http://localhost:{{ .Values.service.targetPort }}/reload
+        - --webhook-method=GET
+        resources:
+          {{- toYaml (index .Values "config-reloader" "resources") | nindent 12 }}
+        volumeMounts:
+        - name: config
+          mountPath: {{ .Values.config.mountPath }}
+          readOnly: true
+      volumes:
+      - name: config
+        secret:
+          secretName: {{ include "vlogxy.fullname" . }}-config
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
