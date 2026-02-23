@@ -72,8 +72,8 @@ spec:
           readOnly: true
       volumes:
       - name: config
-        configMap:
-          name: {{ include "vlogxy.fullname" . }}-config
+        secret:
+          secretName: {{ include "vlogxy.fullname" . }}-config
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
