@@ -9,4 +9,4 @@ type JsonKey string
 
 // ValuesGroup maps metric keys to their aggregated values over time
 // Used for merging time series data from multiple backends
-type ValuesGroup map[JsonKey]map[float64]int64
+type ValuesGroup map[JsonKey]map[float64]float64

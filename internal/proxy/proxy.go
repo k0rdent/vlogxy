@@ -11,24 +11,26 @@ import (
 )
 
 type ProxyGroup[T any] interface {
-	ProxyRequest(interfaces.ResponseAggregator[T])
+	ProxyRequest()
 }
 
 type Proxy[T any] struct {
 	serverGroup []*servergroup.Server
 	httpClient  interfaces.HTTPClient
+	aggregator  interfaces.ResponseAggregator[T]
 	ginContext  *gin.Context
 }
 
-func NewProxy[T any](serverGroup []*servergroup.Server, httpClient interfaces.HTTPClient, c *gin.Context) ProxyGroup[T] {
+func NewProxy[T any](serverGroup []*servergroup.Server, httpClient interfaces.HTTPClient, c *gin.Context, aggregator interfaces.ResponseAggregator[T]) ProxyGroup[T] {
 	return &Proxy[T]{
 		serverGroup: serverGroup,
 		httpClient:  httpClient,
+		aggregator:  aggregator,
 		ginContext:  c,
 	}
 }
 
-func (p *Proxy[T]) ProxyRequest(aggregator interfaces.ResponseAggregator[T]) {
+func (p *Proxy[T]) ProxyRequest() {
 	ctx := p.ginContext.Request.Context()
 	respChan := collectResponses(ctx, p.serverGroup, p.ginContext.Request.URL)
 	result := make([]T, 0, len(p.serverGroup))
@@ -48,7 +50,7 @@ func (p *Proxy[T]) ProxyRequest(aggregator interfaces.ResponseAggregator[T]) {
 				return
 			}
 
-			parsedResp, err := aggregator.ParseResponse(resp)
+			parsedResp, err := p.aggregator.ParseResponse(resp)
 			if err != nil {
 				log.Errorf("failed to parse response: %v", err)
 				return
@@ -61,7 +63,7 @@ func (p *Proxy[T]) ProxyRequest(aggregator interfaces.ResponseAggregator[T]) {
 	}
 	wg.Wait()
 
-	output, err := aggregator.Merge(result)
+	output, err := p.aggregator.Merge(result)
 	if err != nil {
 		log.Errorf("failed to merge responses: %v", err)
 		p.ginContext.JSON(http.StatusInternalServerError, gin.H{"error": "failed to merge responses"})

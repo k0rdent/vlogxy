@@ -1,12 +1,10 @@
 package proxy
 
 import (
-	"cmp"
 	"context"
 	"encoding/json"
 	"io"
 	"net/http"
-	"slices"
 	"strconv"
 	"sync"
 	"time"
@@ -17,39 +15,44 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const bufferSize = 50
+// Ensure StreamProxy does not import ConfigProvider — it only needs a server list.
+// Use NewStreamProxy(config.GetServerGroups(), ...) at the call site.
+
+const flushInterval = 1 * time.Second
 
 type StreamProxyGroup[T any] interface {
-	ProxyRequest(interfaces.StreamResponseAggregator[T])
+	ProxyRequest()
 }
 
 type StreamProxy[T any] struct {
 	serverGroup []*servergroup.Server
 	httpClient  interfaces.HTTPClient
+	aggregator  interfaces.StreamResponseAggregator[T]
 	ginContext  *gin.Context
 	limit       int
 }
 
-func NewStreamProxy[T any](config interfaces.ConfigProvider, httpClient interfaces.HTTPClient, c *gin.Context) StreamProxyGroup[T] {
+func NewStreamProxy[T any](serverGroup []*servergroup.Server, httpClient interfaces.HTTPClient, c *gin.Context, aggregator interfaces.StreamResponseAggregator[T]) StreamProxyGroup[T] {
 	return &StreamProxy[T]{
-		serverGroup: config.GetServerGroups(),
-		httpClient:  httpClient,
-		limit:       getLimit(c, config.GetMaxLogsLimit()),
 		ginContext:  c,
+		aggregator:  aggregator,
+		httpClient:  httpClient,
+		serverGroup: serverGroup,
+		limit:       getLimit(c, aggregator.GetMaxLogsLimit()),
 	}
 }
 
-func (s *StreamProxy[T]) ProxyRequest(aggregator interfaces.StreamResponseAggregator[T]) {
+func (s *StreamProxy[T]) ProxyRequest() {
 	ctx := s.ginContext.Request.Context()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	dataChan := s.collectStreamData(ctx, aggregator)
+	dataChan := s.collectStreamData(ctx)
 	s.streamToClient(ctx, dataChan)
 }
 
 // collectStreamData spawns goroutines to collect data from all backends
-func (s *StreamProxy[T]) collectStreamData(ctx context.Context, aggregator interfaces.StreamResponseAggregator[T]) <-chan []byte {
+func (s *StreamProxy[T]) collectStreamData(ctx context.Context) <-chan []byte {
 	respChan := collectResponses(ctx, s.serverGroup, s.ginContext.Request.URL)
 	dataChan := make(chan []byte, 100)
 	wg := &sync.WaitGroup{}
@@ -67,7 +70,7 @@ func (s *StreamProxy[T]) collectStreamData(ctx context.Context, aggregator inter
 				return
 			}
 
-			aggregator.StreamParseResponse(ctx, resp, dataChan)
+			s.aggregator.StreamParseResponse(ctx, resp, dataChan)
 		})
 	}
 
@@ -79,19 +82,25 @@ func (s *StreamProxy[T]) collectStreamData(ctx context.Context, aggregator inter
 	return dataChan
 }
 
-// streamToClient reads from dataChan and streams sorted batches to the client
+// streamToClient reads from dataChan and streams sorted batches to the client.
 func (s *StreamProxy[T]) streamToClient(ctx context.Context, dataChan <-chan []byte) {
-	buffer := make([]map[string]any, 0, bufferSize)
+	buffer := NewLogsBuffer(s.aggregator.GetBufferSize())
 	remainingLimit := s.limit
+
+	flushTimer := time.NewTimer(flushInterval)
+	defer flushTimer.Stop()
 
 	s.ginContext.Stream(func(w io.Writer) bool {
 		select {
 		case <-ctx.Done():
-			log.Warn("client disconnected, stopping stream")
+			log.Info("client disconnected, stopping stream")
 			return false
+
 		case data, ok := <-dataChan:
 			if !ok {
-				s.flushBuffer(w, buffer)
+				if err := buffer.WriteTo(w); err != nil {
+					log.Errorf("failed to write remaining buffer: %v", err)
+				}
 				return false
 			}
 
@@ -101,23 +110,31 @@ func (s *StreamProxy[T]) streamToClient(ctx context.Context, dataChan <-chan []b
 				return false
 			}
 
-			buffer = append(buffer, item)
+			buffer.AddLog(item)
 
 			if s.shouldFlushBuffer(buffer, remainingLimit) {
-				if !s.writeBuffer(w, buffer) {
-					return false
-				}
-				remainingLimit -= len(buffer)
-				buffer = buffer[:0]
-
-				if s.limitReached(remainingLimit) {
-					return false
-				}
+				return s.flushBuffer(w, buffer, &remainingLimit)
 			}
 
 			return true
+
+		case <-flushTimer.C:
+			ok := s.flushBuffer(w, buffer, &remainingLimit)
+			flushTimer.Reset(flushInterval)
+			return ok
 		}
 	})
+}
+
+// flushBuffer writes the buffer to w, updates remainingLimit, and reports whether streaming should continue.
+func (s *StreamProxy[T]) flushBuffer(w io.Writer, buffer *LogsBuffer, remainingLimit *int) bool {
+	written := buffer.Size()
+	if err := buffer.WriteTo(w); err != nil {
+		log.Errorf("failed to write buffer: %v", err)
+		return false
+	}
+	*remainingLimit -= written
+	return !s.limitReached(*remainingLimit)
 }
 
 // unmarshalItem unmarshals JSON data into a map
@@ -130,66 +147,13 @@ func (s *StreamProxy[T]) unmarshalItem(data []byte) (map[string]any, error) {
 }
 
 // shouldFlushBuffer determines if the buffer should be flushed
-func (s *StreamProxy[T]) shouldFlushBuffer(buffer []map[string]any, remainingLimit int) bool {
-	return len(buffer) >= bufferSize || (remainingLimit > 0 && len(buffer) >= remainingLimit)
+func (s *StreamProxy[T]) shouldFlushBuffer(buffer *LogsBuffer, remainingLimit int) bool {
+	return buffer.Size() >= s.aggregator.GetBufferSize() || (remainingLimit > 0 && buffer.Size() >= remainingLimit)
 }
 
 // limitReached checks if the output limit has been reached
 func (s *StreamProxy[T]) limitReached(remainingLimit int) bool {
 	return remainingLimit <= 0 && s.limit > 0
-}
-
-// writeBuffer sorts and writes the buffer to the writer
-func (s *StreamProxy[T]) writeBuffer(w io.Writer, buffer []map[string]any) bool {
-	s.sortBuffer(buffer)
-
-	for _, item := range buffer {
-		if !s.writeItem(w, item) {
-			return false
-		}
-	}
-	return true
-}
-
-// flushBuffer writes any remaining items in the buffer
-func (s *StreamProxy[T]) flushBuffer(w io.Writer, buffer []map[string]any) {
-	if len(buffer) > 0 {
-		s.writeBuffer(w, buffer)
-	}
-}
-
-// writeItem marshals and writes a single item to the writer
-func (s *StreamProxy[T]) writeItem(w io.Writer, item map[string]any) bool {
-	encoder := json.NewEncoder(w)
-	if err := encoder.Encode(item); err != nil {
-		log.Errorf("failed to encode item: %v", err)
-		return false
-	}
-	return true
-}
-
-func (s *StreamProxy[T]) sortBuffer(buffer []map[string]any) {
-	slices.SortStableFunc(buffer, func(a, b map[string]any) int {
-		tsA, okA := a["_time"].(string)
-		tsB, okB := b["_time"].(string)
-		if !okA || !okB {
-			return 0
-		}
-
-		timeA, err := time.Parse(time.RFC3339Nano, tsA)
-		if err != nil {
-			log.Errorf("failed to parse timestamp: %v", err)
-			return 0
-		}
-
-		timeB, err := time.Parse(time.RFC3339Nano, tsB)
-		if err != nil {
-			log.Errorf("failed to parse timestamp: %v", err)
-			return 0
-		}
-
-		return cmp.Compare(timeB.Unix(), timeA.Unix())
-	})
 }
 
 func getLimit(c *gin.Context, maxLimit int) int {
