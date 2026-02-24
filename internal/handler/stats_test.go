@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"encoding/json"
+	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -61,7 +62,7 @@ var _ = Describe("Stats Merge method tests", func() {
 			Expect(response.Data.Result).To(HaveLen(1))
 			Expect(response.Data.Result[0].Metric).To(Equal(map[string]string{"label": "value1"}))
 			Expect(response.Data.Result[0].Value[0]).To(Equal(1234567890.0))
-			Expect(response.Data.Result[0].Value[1]).To(Equal("100"))
+			Expect(response.Data.Result[0].Value[1]).To(Equal(fmt.Sprintf("%f", 100.0)))
 		})
 	})
 
@@ -109,7 +110,7 @@ var _ = Describe("Stats Merge method tests", func() {
 
 			Expect(response.Data.Result).To(HaveLen(1))
 			Expect(response.Data.Result[0].Metric).To(Equal(map[string]string{"label": "value1"}))
-			Expect(response.Data.Result[0].Value[1]).To(Equal("300"))
+			Expect(response.Data.Result[0].Value[1]).To(Equal(fmt.Sprintf("%f", 300.0)))
 		})
 	})
 
@@ -204,7 +205,7 @@ var _ = Describe("Stats Merge method tests", func() {
 			Expect(response.Data.Result).To(HaveLen(1))
 			Expect(response.Data.Result[0].Metric).To(HaveKeyWithValue("app", "web"))
 			Expect(response.Data.Result[0].Metric).To(HaveKeyWithValue("env", "prod"))
-			Expect(response.Data.Result[0].Value[1]).To(Equal("200"))
+			Expect(response.Data.Result[0].Value[1]).To(Equal(fmt.Sprintf("%f", 200.0)))
 		})
 	})
 })
