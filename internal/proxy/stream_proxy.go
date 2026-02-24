@@ -15,9 +15,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Ensure StreamProxy does not import ConfigProvider — it only needs a server list.
-// Use NewStreamProxy(config.GetServerGroups(), ...) at the call site.
-
 const flushInterval = 1 * time.Second
 
 type StreamProxyGroup[T any] interface {
@@ -98,7 +95,7 @@ func (s *StreamProxy[T]) streamToClient(ctx context.Context, dataChan <-chan []b
 
 		case data, ok := <-dataChan:
 			if !ok {
-				if err := buffer.WriteTo(w); err != nil {
+				if err := buffer.Write(w); err != nil {
 					log.Errorf("failed to write remaining buffer: %v", err)
 				}
 				return false
@@ -129,7 +126,7 @@ func (s *StreamProxy[T]) streamToClient(ctx context.Context, dataChan <-chan []b
 // flushBuffer writes the buffer to w, updates remainingLimit, and reports whether streaming should continue.
 func (s *StreamProxy[T]) flushBuffer(w io.Writer, buffer *LogsBuffer, remainingLimit *int) bool {
 	written := buffer.Size()
-	if err := buffer.WriteTo(w); err != nil {
+	if err := buffer.Write(w); err != nil {
 		log.Errorf("failed to write buffer: %v", err)
 		return false
 	}

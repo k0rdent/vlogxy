@@ -12,18 +12,16 @@ import (
 
 type LogsBuffer struct {
 	logsBuffer []map[string]any
-	lastFlush  time.Time
 }
 
 func NewLogsBuffer(size int) *LogsBuffer {
 	return &LogsBuffer{
 		logsBuffer: make([]map[string]any, 0, size),
-		lastFlush:  time.Now(),
 	}
 }
 
-// WriteTo sorts the buffer by time, writes all entries to w, and resets the buffer.
-func (b *LogsBuffer) WriteTo(w io.Writer) error {
+// Write sorts the buffer by time, writes all entries to w, and resets the buffer.
+func (b *LogsBuffer) Write(w io.Writer) error {
 	if b.IsEmpty() {
 		return nil
 	}
@@ -46,7 +44,6 @@ func (b *LogsBuffer) WriteTo(w io.Writer) error {
 // Reset clears the buffer while retaining its allocated capacity.
 func (b *LogsBuffer) Reset() {
 	b.logsBuffer = b.logsBuffer[:0]
-	b.lastFlush = time.Now()
 }
 
 func (b *LogsBuffer) SortByTime() {
