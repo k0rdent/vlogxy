@@ -17,23 +17,17 @@ import (
 
 const flushInterval = 1 * time.Second
 
-type StreamProxyGroup[T any] interface {
-	ProxyRequest()
-}
-
 type StreamProxy[T any] struct {
 	serverGroup []*servergroup.Server
-	httpClient  interfaces.HTTPClient
 	aggregator  interfaces.StreamResponseAggregator[T]
 	ginContext  *gin.Context
 	limit       int
 }
 
-func NewStreamProxy[T any](serverGroup []*servergroup.Server, httpClient interfaces.HTTPClient, c *gin.Context, aggregator interfaces.StreamResponseAggregator[T]) StreamProxyGroup[T] {
+func NewStreamProxy[T any](serverGroup []*servergroup.Server, httpClient interfaces.HTTPClient, c *gin.Context, aggregator interfaces.StreamResponseAggregator[T]) interfaces.ProxyGroup[T] {
 	return &StreamProxy[T]{
 		ginContext:  c,
 		aggregator:  aggregator,
-		httpClient:  httpClient,
 		serverGroup: serverGroup,
 		limit:       getLimit(c, aggregator.GetMaxLogsLimit()),
 	}
@@ -104,19 +98,16 @@ func (s *StreamProxy[T]) streamToClient(ctx context.Context, dataChan <-chan []b
 			item, err := s.unmarshalItem(data)
 			if err != nil {
 				log.Errorf("failed to unmarshal streaming data: %v", err)
-				return false
+				return true
 			}
 
 			buffer.AddLog(item)
-
-			if s.shouldFlushBuffer(buffer, remainingLimit) {
-				return s.flushBuffer(w, buffer, &remainingLimit)
-			}
-
-			return true
+			remainingLimit, ok = s.tryFlushBuffer(w, buffer, remainingLimit)
+			return ok
 
 		case <-flushTimer.C:
-			ok := s.flushBuffer(w, buffer, &remainingLimit)
+			var ok bool
+			remainingLimit, ok = s.flushBuffer(w, buffer, remainingLimit)
 			flushTimer.Reset(flushInterval)
 			return ok
 		}
@@ -124,14 +115,14 @@ func (s *StreamProxy[T]) streamToClient(ctx context.Context, dataChan <-chan []b
 }
 
 // flushBuffer writes the buffer to w, updates remainingLimit, and reports whether streaming should continue.
-func (s *StreamProxy[T]) flushBuffer(w io.Writer, buffer *LogsBuffer, remainingLimit *int) bool {
+func (s *StreamProxy[T]) flushBuffer(w io.Writer, buffer *LogsBuffer, remainingLimit int) (int, bool) {
 	written := buffer.Size()
 	if err := buffer.Write(w); err != nil {
 		log.Errorf("failed to write buffer: %v", err)
-		return false
+		return remainingLimit, false
 	}
-	*remainingLimit -= written
-	return !s.limitReached(*remainingLimit)
+	remainingLimit -= written
+	return remainingLimit, !s.limitReached(remainingLimit)
 }
 
 // unmarshalItem unmarshals JSON data into a map
@@ -143,9 +134,12 @@ func (s *StreamProxy[T]) unmarshalItem(data []byte) (map[string]any, error) {
 	return item, nil
 }
 
-// shouldFlushBuffer determines if the buffer should be flushed
-func (s *StreamProxy[T]) shouldFlushBuffer(buffer *LogsBuffer, remainingLimit int) bool {
-	return buffer.Size() >= s.aggregator.GetBufferSize() || (remainingLimit > 0 && buffer.Size() >= remainingLimit)
+// tryFlushBuffer determines if the buffer should be flushed
+func (s *StreamProxy[T]) tryFlushBuffer(w io.Writer, buffer *LogsBuffer, remainingLimit int) (int, bool) {
+	if buffer.Size() >= s.aggregator.GetBufferSize() || (remainingLimit > 0 && buffer.Size() >= remainingLimit) {
+		return s.flushBuffer(w, buffer, remainingLimit)
+	}
+	return remainingLimit, true
 }
 
 // limitReached checks if the output limit has been reached

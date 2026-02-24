@@ -38,3 +38,7 @@ type StreamResponseAggregator[T any] interface {
 	// GetBufferSize returns the buffer size for streaming responses
 	GetBufferSize() int
 }
+
+type ProxyGroup[T any] interface {
+	ProxyRequest()
+}

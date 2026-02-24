@@ -41,11 +41,7 @@ func (f *FacetsQuery) Merge(responses []FacetsResponse) ([]byte, error) {
 
 	for _, resp := range responses {
 		for _, facet := range resp.Facets {
-			facetValuesMap, ok := facetsMap[facet.FieldName]
-			if !ok {
-				facetValuesMap = make(FacetsValuesMap)
-				facetsMap[facet.FieldName] = facetValuesMap
-			}
+			facetValuesMap := common.GetOrCreateInnerMap(facetsMap, facet.FieldName)
 
 			for _, value := range facet.Values {
 				facetValuesMap[value.Value] += value.Hits

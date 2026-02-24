@@ -10,10 +10,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type ProxyGroup[T any] interface {
-	ProxyRequest()
-}
-
 type Proxy[T any] struct {
 	serverGroup []*servergroup.Server
 	httpClient  interfaces.HTTPClient
@@ -21,7 +17,7 @@ type Proxy[T any] struct {
 	ginContext  *gin.Context
 }
 
-func NewProxy[T any](serverGroup []*servergroup.Server, httpClient interfaces.HTTPClient, c *gin.Context, aggregator interfaces.ResponseAggregator[T]) ProxyGroup[T] {
+func NewProxy[T any](serverGroup []*servergroup.Server, httpClient interfaces.HTTPClient, c *gin.Context, aggregator interfaces.ResponseAggregator[T]) interfaces.ProxyGroup[T] {
 	return &Proxy[T]{
 		serverGroup: serverGroup,
 		httpClient:  httpClient,
