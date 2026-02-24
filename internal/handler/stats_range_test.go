@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"encoding/json"
+	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -80,8 +81,8 @@ var _ = Describe("StatsRange Merge method tests", func() {
 							{
 								Metric: map[string]string{"label": "value1"},
 								Values: []common.ValuePair{
-									{1234567890.0, "100"},
-									{1234567900.0, "200"},
+									{1234567890.0, "100.0"},
+									{1234567900.0, "200.0"},
 								},
 							},
 						},
@@ -125,9 +126,9 @@ var _ = Describe("StatsRange Merge method tests", func() {
 
 				switch ts {
 				case 1234567890.0:
-					Expect(val).To(Equal("150")) // 100 + 50
+					Expect(val).To(Equal(fmt.Sprintf("%f", 150.0))) // 100 + 50
 				case 1234567900.0:
-					Expect(val).To(Equal("300")) // 200 + 100
+					Expect(val).To(Equal(fmt.Sprintf("%f", 300.0))) // 200 + 100
 				}
 			}
 		})

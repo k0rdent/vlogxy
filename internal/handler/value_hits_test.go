@@ -10,18 +10,18 @@ import (
 )
 
 var _ = Describe("FieldValuesQuery Merge method tests", func() {
-	var fieldValuesQuery *handler.FieldValuesQuery
+	var fieldValuesQuery *handler.ValueHitsAggregator
 
 	BeforeEach(func() {
-		fieldValuesQuery = handler.NewFieldValuesQuery().(*handler.FieldValuesQuery)
+		fieldValuesQuery = handler.NewFieldValuesQuery().(*handler.ValueHitsAggregator)
 	})
 
 	Context("when merging empty responses", func() {
 		It("should return empty values array", func() {
-			result, err := fieldValuesQuery.Merge([]handler.FieldValuesResponse{})
+			result, err := fieldValuesQuery.Merge([]handler.ValuesResponse{})
 			Expect(err).NotTo(HaveOccurred())
 
-			var response handler.FieldValuesResponse
+			var response handler.ValuesResponse
 			err = json.Unmarshal(result, &response)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(response.Values).To(BeEmpty())
@@ -30,7 +30,7 @@ var _ = Describe("FieldValuesQuery Merge method tests", func() {
 
 	Context("when merging single response", func() {
 		It("should return the same values", func() {
-			responses := []handler.FieldValuesResponse{
+			responses := []handler.ValuesResponse{
 				{
 					Values: []handler.Value{
 						{Value: "value1", Hits: 10},
@@ -42,7 +42,7 @@ var _ = Describe("FieldValuesQuery Merge method tests", func() {
 			result, err := fieldValuesQuery.Merge(responses)
 			Expect(err).NotTo(HaveOccurred())
 
-			var response handler.FieldValuesResponse
+			var response handler.ValuesResponse
 			err = json.Unmarshal(result, &response)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -54,7 +54,7 @@ var _ = Describe("FieldValuesQuery Merge method tests", func() {
 
 	Context("when merging multiple responses with same values", func() {
 		It("should aggregate hits for the same value", func() {
-			responses := []handler.FieldValuesResponse{
+			responses := []handler.ValuesResponse{
 				{
 					Values: []handler.Value{
 						{Value: "value1", Hits: 10},
@@ -72,7 +72,7 @@ var _ = Describe("FieldValuesQuery Merge method tests", func() {
 			result, err := fieldValuesQuery.Merge(responses)
 			Expect(err).NotTo(HaveOccurred())
 
-			var response handler.FieldValuesResponse
+			var response handler.ValuesResponse
 			err = json.Unmarshal(result, &response)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -85,7 +85,7 @@ var _ = Describe("FieldValuesQuery Merge method tests", func() {
 
 	Context("when merging multiple responses with distinct values", func() {
 		It("should include all unique values", func() {
-			responses := []handler.FieldValuesResponse{
+			responses := []handler.ValuesResponse{
 				{
 					Values: []handler.Value{
 						{Value: "apple", Hits: 5},
@@ -103,7 +103,7 @@ var _ = Describe("FieldValuesQuery Merge method tests", func() {
 			result, err := fieldValuesQuery.Merge(responses)
 			Expect(err).NotTo(HaveOccurred())
 
-			var response handler.FieldValuesResponse
+			var response handler.ValuesResponse
 			err = json.Unmarshal(result, &response)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -117,7 +117,7 @@ var _ = Describe("FieldValuesQuery Merge method tests", func() {
 
 	Context("when merging responses with zero hits", func() {
 		It("should handle zero hits correctly", func() {
-			responses := []handler.FieldValuesResponse{
+			responses := []handler.ValuesResponse{
 				{
 					Values: []handler.Value{
 						{Value: "value1", Hits: 0},
@@ -133,7 +133,7 @@ var _ = Describe("FieldValuesQuery Merge method tests", func() {
 			result, err := fieldValuesQuery.Merge(responses)
 			Expect(err).NotTo(HaveOccurred())
 
-			var response handler.FieldValuesResponse
+			var response handler.ValuesResponse
 			err = json.Unmarshal(result, &response)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -144,7 +144,7 @@ var _ = Describe("FieldValuesQuery Merge method tests", func() {
 
 	Context("when merging many responses", func() {
 		It("should correctly aggregate across all responses", func() {
-			responses := []handler.FieldValuesResponse{
+			responses := []handler.ValuesResponse{
 				{Values: []handler.Value{{Value: "common", Hits: 1}}},
 				{Values: []handler.Value{{Value: "common", Hits: 2}}},
 				{Values: []handler.Value{{Value: "common", Hits: 3}}},
@@ -155,7 +155,7 @@ var _ = Describe("FieldValuesQuery Merge method tests", func() {
 			result, err := fieldValuesQuery.Merge(responses)
 			Expect(err).NotTo(HaveOccurred())
 
-			var response handler.FieldValuesResponse
+			var response handler.ValuesResponse
 			err = json.Unmarshal(result, &response)
 			Expect(err).NotTo(HaveOccurred())
 

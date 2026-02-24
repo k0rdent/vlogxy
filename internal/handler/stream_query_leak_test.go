@@ -68,12 +68,12 @@ var _ = Describe("StreamQuery Memory Leak Tests", func() {
 	}
 
 	setupTestServer := func() {
-		config := getFakeConfig(serverGroup, maxLogsLimit)
+		cfg := getFakeConfig(serverGroup, maxLogsLimit)
 		router := gin.New()
 		router.GET("/select/logsql/query", func(c *gin.Context) {
-			query := handler.NewStreamQuery()
-			proxyInstance := proxy.NewStreamProxy[[]byte](config, http.DefaultClient, c)
-			proxyInstance.ProxyRequest(query)
+			query := handler.NewStreamQuery(cfg.GetMaxLogsLimit(), handler.DefaultBufferSize)
+			proxyInstance := proxy.NewStreamProxy[[]byte](cfg.GetServerGroups(), http.DefaultClient, c, query)
+			proxyInstance.ProxyRequest()
 		})
 		testServer = httptest.NewServer(router)
 	}

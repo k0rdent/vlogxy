@@ -51,7 +51,7 @@ func (s *Stats) Merge(responses []StatsResponse) ([]byte, error) {
 
 			m, ok := groups[jsonKey]
 			if !ok {
-				m = make(map[float64]int64)
+				m = make(map[float64]float64)
 				groups[jsonKey] = m
 			}
 
@@ -67,12 +67,12 @@ func (s *Stats) Merge(responses []StatsResponse) ([]byte, error) {
 				continue
 			}
 
-			valInt, err := strconv.ParseInt(val, 10, 64)
+			valFloat, err := strconv.ParseFloat(val, 64)
 			if err != nil {
-				log.Errorf("failed to parse value as int: %v", err)
+				log.Errorf("failed to parse value as float: %v", err)
 				continue
 			}
-			m[ts] += valInt
+			m[ts] += valFloat
 		}
 	}
 
@@ -101,13 +101,13 @@ func (s *Stats) Merge(responses []StatsResponse) ([]byte, error) {
 		}
 
 		var ts float64
-		var sum int64
+		var sum float64
 		for t, s := range tsMap {
 			ts = t
 			sum = s
 			break
 		}
-		valStr := fmt.Sprintf("%d", sum)
+		valStr := fmt.Sprintf("%f", sum)
 
 		result.Data.Result = append(result.Data.Result, StatsSeries{
 			Metric: metric,

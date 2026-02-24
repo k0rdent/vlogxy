@@ -31,6 +31,14 @@ type ResponseAggregator[T any] interface {
 }
 
 type StreamResponseAggregator[T any] interface {
-	// StreamParseResponse processes a single backend response and returns a channel of results
+	// StreamParseResponse processes a single backend response and sends data to the provided channel
 	StreamParseResponse(context.Context, *http.Response, chan<- []byte)
+	// GetMaxLogsLimit returns the maximum number of logs to return in a query
+	GetMaxLogsLimit() int
+	// GetBufferSize returns the buffer size for streaming responses
+	GetBufferSize() int
+}
+
+type ProxyGroup[T any] interface {
+	ProxyRequest()
 }

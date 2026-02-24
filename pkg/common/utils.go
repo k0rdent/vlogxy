@@ -43,3 +43,13 @@ func BuildURL(scheme, host, path, rawQuery string) string {
 	}
 	return url.String()
 }
+
+// GetOrCreateInnerMap retrieves an inner map from an outer map, creating it if it doesn't exist
+func GetOrCreateInnerMap[K comparable, V ~map[string]int](outerMap map[K]V, key K) V {
+	innerMap, ok := outerMap[key]
+	if !ok {
+		innerMap = make(V)
+		outerMap[key] = innerMap
+	}
+	return innerMap
+}
