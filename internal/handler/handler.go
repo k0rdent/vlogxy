@@ -52,31 +52,37 @@ func (h *Handler) ProxyFieldValues(c *gin.Context) {
 	proxy.NewProxy(h.config.GetServerGroups(), h.httpClient, c, query).ProxyRequest()
 }
 
+// ProxyFieldNames handles /select/logsql/field_names endpoint
 func (h *Handler) ProxyFieldNames(c *gin.Context) {
 	query := NewFieldNamesQuery()
 	proxy.NewProxy(h.config.GetServerGroups(), h.httpClient, c, query).ProxyRequest()
 }
 
+// ProxyFacets handles /select/logsql/facets endpoint
 func (h *Handler) ProxyFacets(c *gin.Context) {
 	query := NewFacetsQuery()
 	proxy.NewProxy(h.config.GetServerGroups(), h.httpClient, c, query).ProxyRequest()
 }
 
+// StreamIds handles /select/logsql/stream_ids endpoint
 func (h *Handler) StreamIds(c *gin.Context) {
 	query := NewStreamIdsQuery()
 	proxy.NewProxy(h.config.GetServerGroups(), h.httpClient, c, query).ProxyRequest()
 }
 
+// Streams handles /select/logsql/streams endpoint
 func (h *Handler) Streams(c *gin.Context) {
 	query := NewStreamsQuery()
 	proxy.NewProxy(h.config.GetServerGroups(), h.httpClient, c, query).ProxyRequest()
 }
 
+// StreamFieldNames handles /select/logsql/stream_field_names endpoint
 func (h *Handler) StreamFieldNames(c *gin.Context) {
 	query := NewStreamFieldNamesQuery()
 	proxy.NewProxy(h.config.GetServerGroups(), h.httpClient, c, query).ProxyRequest()
 }
 
+// StreamFieldValues handles /select/logsql/stream_field_values endpoint
 func (h *Handler) StreamFieldValues(c *gin.Context) {
 	query := NewStreamFieldValuesQuery()
 	proxy.NewProxy(h.config.GetServerGroups(), h.httpClient, c, query).ProxyRequest()

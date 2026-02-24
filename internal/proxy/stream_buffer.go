@@ -70,8 +70,8 @@ func (b *LogsBuffer) SortByTime() {
 	})
 }
 
-func (b *LogsBuffer) AddLog(log map[string]any) {
-	b.logsBuffer = append(b.logsBuffer, log)
+func (b *LogsBuffer) AddLog(entry map[string]any) {
+	b.logsBuffer = append(b.logsBuffer, entry)
 }
 
 func (b *LogsBuffer) Size() int {
