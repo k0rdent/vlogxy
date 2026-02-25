@@ -7,8 +7,8 @@ import (
 
 func EmptyConfigMiddleware(conf *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Allow health/readiness probes to pass through even when config is empty
-		if isHealthRequest(c) {
+		// Allow health and reload requests to pass through even when config is empty
+		if isHealthRequest(c) || isReloadRequest(c) {
 			c.Next()
 			return
 		}
@@ -26,4 +26,8 @@ func EmptyConfigMiddleware(conf *config.Config) gin.HandlerFunc {
 
 func isHealthRequest(c *gin.Context) bool {
 	return c.Request.URL.Path == "/health"
+}
+
+func isReloadRequest(c *gin.Context) bool {
+	return c.Request.URL.Path == "/reload"
 }
