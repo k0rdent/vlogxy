@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   registry: "ghcr.io/k0rdent"
-  repository: vlogxy
+  repository: vlogxy/vlogxy
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
