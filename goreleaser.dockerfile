@@ -11,8 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+FROM alpine:3.21 AS certs
+RUN apk add --no-cache ca-certificates
 
 FROM scratch
+
+COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY bin/vlogxy /vlogxy
 USER 65532:65532
 
