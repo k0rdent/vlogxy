@@ -44,7 +44,7 @@ func (s *StreamProxy[T]) ProxyRequest() {
 
 // collectStreamData spawns goroutines to collect data from all backends
 func (s *StreamProxy[T]) collectStreamData(ctx context.Context) <-chan []byte {
-	respChan := collectResponses(ctx, s.serverGroup, s.ginContext.Request.URL)
+	respChan := collectResponses(ctx, s.serverGroup, s.ginContext.Request)
 	dataChan := make(chan []byte, 100)
 	wg := &sync.WaitGroup{}
 
