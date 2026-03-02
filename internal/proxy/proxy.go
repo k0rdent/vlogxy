@@ -28,7 +28,7 @@ func NewProxy[T any](serverGroup []*servergroup.Server, httpClient interfaces.HT
 
 func (p *Proxy[T]) ProxyRequest() {
 	ctx := p.ginContext.Request.Context()
-	respChan := collectResponses(ctx, p.serverGroup, p.ginContext.Request.URL)
+	respChan := collectResponses(ctx, p.serverGroup, p.ginContext.Request)
 	result := make([]T, 0, len(p.serverGroup))
 	wg := &sync.WaitGroup{}
 	mu := &sync.Mutex{}
