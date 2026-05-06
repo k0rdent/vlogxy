@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/k0rdent/vlogxy/internal/interfaces"
+	"github.com/k0rdent/vlogxy/internal/parser"
 	"github.com/k0rdent/vlogxy/internal/proxy"
 	log "github.com/sirupsen/logrus"
 )
@@ -30,14 +31,50 @@ func NewHandler(config interfaces.ConfigProvider) *Handler {
 
 // ProxyStats handles /select/logsql/stats_query endpoint
 func (h *Handler) ProxyStats(c *gin.Context) {
-	query := NewStats()
-	proxy.NewProxy(h.config.GetServerGroups(), h.httpClient, c, query).ProxyRequest()
+	queryStr := c.Request.FormValue("query")
+	pipes, err := parser.ParseQuery(queryStr)
+	if err != nil {
+		log.Errorf("failed to parse query: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "error",
+			"message": "Failed to parse query",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	if len(pipes) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "error",
+			"message": "stats_query requires a stats pipe in the query",
+		})
+		return
+	}
+	proxy.NewProxy(h.config.GetServerGroups(), h.httpClient, c, NewStatsQuery(pipes)).ProxyRequest()
 }
 
 // ProxyStatsRange handles /select/logsql/stats_query_range endpoint
 func (h *Handler) ProxyStatsRange(c *gin.Context) {
-	query := NewStatsRange()
-	proxy.NewProxy(h.config.GetServerGroups(), h.httpClient, c, query).ProxyRequest()
+	queryStr := c.Request.FormValue("query")
+	pipes, err := parser.ParseQuery(queryStr)
+	if err != nil {
+		log.Errorf("failed to parse query: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "error",
+			"message": "Failed to parse query",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	if len(pipes) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "error",
+			"message": "stats_query_range requires a stats pipe in the query",
+		})
+		return
+	}
+	proxy.NewProxy(h.config.GetServerGroups(), h.httpClient, c, NewStatsRangeQuery(pipes)).ProxyRequest()
 }
 
 // ProxyHits handles /select/logsql/hits endpoint
@@ -88,10 +125,29 @@ func (h *Handler) StreamFieldValues(c *gin.Context) {
 	proxy.NewProxy(h.config.GetServerGroups(), h.httpClient, c, query).ProxyRequest()
 }
 
-// StreamQuery handles /select/logsql/query endpoint with streaming
+// StreamQuery handles /select/logsql/query endpoint with streaming.
+// When the query contains stats functions, results are merged across backends
+// before being returned to the client. Otherwise raw log lines are streamed.
 func (h *Handler) StreamQuery(c *gin.Context) {
-	query := NewStreamQuery(h.config.GetMaxLogsLimit(), DefaultBufferSize)
-	proxy.NewStreamProxy[[]byte](h.config.GetServerGroups(), h.httpClient, c, query).ProxyRequest()
+	queryStr := c.Request.FormValue("query")
+	pipes, err := parser.ParseQuery(queryStr)
+	if err != nil {
+		log.Errorf("failed to parse query: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "error",
+			"message": "Failed to parse query",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	if len(pipes) > 0 {
+		proxy.NewProxy(h.config.GetServerGroups(), h.httpClient, c, NewFlatStatsQuery(pipes)).ProxyRequest()
+		return
+	}
+
+	q := NewStreamQuery(h.config.GetMaxLogsLimit(), DefaultBufferSize)
+	proxy.NewStreamProxy[[]byte](h.config.GetServerGroups(), h.httpClient, c, q).ProxyRequest()
 }
 
 // StreamTail handles /select/logsql/tail endpoint with streaming
