@@ -1,0 +1,36 @@
+package logstorage
+
+import (
+	"strings"
+
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/prefixfilter"
+)
+
+// filterOr contains filters joined by OR operator.
+//
+// It is expressed as `f1 OR f2 ... OR fN` in LogsQL.
+type filterOr struct {
+	filters []filter
+}
+
+func newFilterOr(filters []filter) *filterOr {
+	return &filterOr{
+		filters: filters,
+	}
+}
+
+func (fo *filterOr) String() string {
+	filters := fo.filters
+	a := make([]string, len(filters))
+	for i, f := range filters {
+		s := f.String()
+		a[i] = s
+	}
+	return strings.Join(a, " or ")
+}
+
+func (fo *filterOr) updateNeededFields(pf *prefixfilter.Filter) {
+	for _, f := range fo.filters {
+		f.updateNeededFields(pf)
+	}
+}

@@ -2,20 +2,31 @@ package handler_test
 
 import (
 	"encoding/json"
-	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/k0rdent/vlogxy/internal/handler"
+	"github.com/k0rdent/vlogxy/internal/parser"
 	"github.com/k0rdent/vlogxy/pkg/common"
 )
+
+// countPipe returns a stats pipe grouping by the given fields with a single count function.
+func countPipe(byFields ...string) []*parser.Pipe {
+	return []*parser.Pipe{
+		{
+			Name:     "stats",
+			ByFields: byFields,
+			Funcs:    []*parser.Func{{Name: "count", ResultName: "value"}},
+		},
+	}
+}
 
 var _ = Describe("StatsRange Merge method tests", func() {
 	var statsRange *handler.StatsRange
 
 	BeforeEach(func() {
-		statsRange = handler.NewStatsRange().(*handler.StatsRange)
+		statsRange = handler.NewStatsRangeQuery(countPipe()).(*handler.StatsRange)
 	})
 
 	Context("when merging empty responses", func() {
@@ -81,8 +92,8 @@ var _ = Describe("StatsRange Merge method tests", func() {
 							{
 								Metric: map[string]string{"label": "value1"},
 								Values: []common.ValuePair{
-									{1234567890.0, "100.0"},
-									{1234567900.0, "200.0"},
+									{1234567890.0, "100"},
+									{1234567900.0, "200"},
 								},
 							},
 						},
@@ -119,16 +130,15 @@ var _ = Describe("StatsRange Merge method tests", func() {
 			Expect(response.Data.Result).To(HaveLen(1))
 			Expect(response.Data.Result[0].Values).To(HaveLen(2))
 
-			// Find the values and check aggregation
 			for _, valuePair := range response.Data.Result[0].Values {
 				ts := valuePair[0].(float64)
 				val := valuePair[1].(string)
 
 				switch ts {
 				case 1234567890.0:
-					Expect(val).To(Equal(fmt.Sprintf("%f", 150.0))) // 100 + 50
+					Expect(val).To(Equal("150")) // 100 + 50
 				case 1234567900.0:
-					Expect(val).To(Equal(fmt.Sprintf("%f", 300.0))) // 200 + 100
+					Expect(val).To(Equal("300")) // 200 + 100
 				}
 			}
 		})
@@ -136,6 +146,8 @@ var _ = Describe("StatsRange Merge method tests", func() {
 
 	Context("when merging responses with different metrics", func() {
 		It("should keep metrics separate", func() {
+			// Pipe groups by "label", matching the metric labels in the responses.
+			agg := handler.NewStatsRangeQuery(countPipe("label")).(*handler.StatsRange)
 			responses := []handler.StatsRangeResponse{
 				{
 					Data: struct {
@@ -173,7 +185,7 @@ var _ = Describe("StatsRange Merge method tests", func() {
 				},
 			}
 
-			result, err := statsRange.Merge(responses)
+			result, err := agg.Merge(responses)
 			Expect(err).NotTo(HaveOccurred())
 
 			var response handler.StatsRangeResponse
@@ -236,7 +248,7 @@ var _ = Describe("StatsRange Merge method tests", func() {
 			Expect(response.Data.Result[0].Values).To(HaveLen(4))
 
 			// Check that values are sorted by timestamp
-			timestamps := make([]float64, 0)
+			timestamps := make([]float64, 0, len(response.Data.Result[0].Values))
 			for _, valuePair := range response.Data.Result[0].Values {
 				timestamps = append(timestamps, valuePair[0].(float64))
 			}
