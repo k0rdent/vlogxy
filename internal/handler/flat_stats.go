@@ -1,9 +1,9 @@
 package handler
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 
 	"github.com/k0rdent/vlogxy/internal/interfaces"
@@ -29,21 +29,18 @@ func NewFlatStatsQuery(pipes []*parser.Pipe) interfaces.ResponseAggregator[FlatR
 
 func (f *FlatStatsQuery) ParseResponse(resp *http.Response) (FlatResponse, error) {
 	var result FlatResponse
-	scanner := bufio.NewScanner(resp.Body)
-	for scanner.Scan() {
-		line := bytes.TrimSpace(scanner.Bytes())
-		if len(line) == 0 {
-			continue
-		}
+
+	decoder := json.NewDecoder(resp.Body)
+	for {
 		var obj map[string]string
-		if err := json.Unmarshal(line, &obj); err != nil {
-			log.Errorf("flat stats: failed to unmarshal line: %v", err)
+		if err := decoder.Decode(&obj); err != nil {
+			if err == io.EOF {
+				break
+			}
+			log.Errorf("flat stats: failed to decode line: %v", err)
 			continue
 		}
 		result = append(result, obj)
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, err
 	}
 	return result, nil
 }

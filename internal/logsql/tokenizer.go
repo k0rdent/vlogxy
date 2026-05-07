@@ -11,7 +11,7 @@ func isTokenChar(c byte) bool {
 
 var tokenCharTable = func() *[256]byte {
 	var a [256]byte
-	for c := range uint(256) {
+	for c := range a {
 		if c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_' {
 			a[c] = 1
 		}

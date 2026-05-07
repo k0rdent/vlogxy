@@ -95,15 +95,22 @@ func AggregateSum(values []string) string {
 // AggregateMin takes the minimum value across backends (e.g. min, first).
 func AggregateMin(values []string) string {
 	var min float64
-	for i, v := range values {
+	var hasMin bool
+	for _, v := range values {
 		f, err := strconv.ParseFloat(v, 64)
 		if err != nil {
 			log.Errorf("failed to parse value %q as float for min aggregation: %v", v, err)
 			continue
 		}
-		if i == 0 || f < min {
+
+		if !hasMin || f < min {
 			min = f
+			hasMin = true
 		}
+	}
+
+	if !hasMin {
+		return ""
 	}
 	return common.FloatToStr(min)
 }
@@ -111,16 +118,22 @@ func AggregateMin(values []string) string {
 // AggregateMax takes the maximum value across backends (e.g. max, last).
 func AggregateMax(values []string) string {
 	var max float64
-	for i, v := range values {
+	var hasMax bool
+	for _, v := range values {
 		f, err := strconv.ParseFloat(v, 64)
 		if err != nil {
 			log.Errorf("failed to parse value %q as float for max aggregation: %v", v, err)
 			continue
 		}
 
-		if i == 0 || f > max {
+		if !hasMax || f > max {
 			max = f
+			hasMax = true
 		}
+	}
+
+	if !hasMax {
+		return ""
 	}
 	return common.FloatToStr(max)
 }

@@ -2,8 +2,6 @@ module github.com/k0rdent/vlogxy
 
 go 1.26.2
 
-replace github.com/VictoriaMetrics/VictoriaLogs/lib/logstorage => ./internal/logsql
-
 require (
 	github.com/VictoriaMetrics/VictoriaMetrics v1.140.0
 	github.com/gin-gonic/gin v1.11.0

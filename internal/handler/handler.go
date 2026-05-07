@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"slices"
 
 	"github.com/gin-gonic/gin"
 	"github.com/k0rdent/vlogxy/internal/interfaces"
@@ -43,13 +44,18 @@ func (h *Handler) ProxyStats(c *gin.Context) {
 		return
 	}
 
-	if len(pipes) == 0 {
+	hasStats := slices.ContainsFunc(pipes, func(p *parser.Pipe) bool {
+		return p.Name == stats
+	})
+
+	if !hasStats {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "error",
 			"message": "stats_query requires a stats pipe in the query",
 		})
 		return
 	}
+
 	proxy.NewProxy(h.config.GetServerGroups(), h.httpClient, c, NewStatsQuery(pipes)).ProxyRequest()
 }
 
@@ -67,13 +73,18 @@ func (h *Handler) ProxyStatsRange(c *gin.Context) {
 		return
 	}
 
-	if len(pipes) == 0 {
+	hasStats := slices.ContainsFunc(pipes, func(p *parser.Pipe) bool {
+		return p.Name == stats
+	})
+
+	if !hasStats {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "error",
-			"message": "stats_query_range requires a stats pipe in the query",
+			"message": "stats_query requires a stats pipe in the query",
 		})
 		return
 	}
+
 	proxy.NewProxy(h.config.GetServerGroups(), h.httpClient, c, NewStatsRangeQuery(pipes)).ProxyRequest()
 }
 
