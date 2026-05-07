@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"fmt"
@@ -22,7 +22,7 @@ type pipeSplit struct {
 
 func (ps *pipeSplit) String() string {
 	s := "split " + quoteTokenIfNeeded(ps.separator)
-	if ps.srcField != "_msg" {
+	if ps.srcField != _msg {
 		s += " from " + quoteTokenIfNeeded(ps.srcField)
 	}
 	if ps.dstField != ps.srcField {
@@ -61,7 +61,7 @@ func parsePipeSplit(lex *lexer) (pipe, error) {
 		return nil, fmt.Errorf("cannot read split separator: %w", err)
 	}
 
-	srcField := "_msg"
+	srcField := _msg
 	if !lex.isKeyword("as", ")", "|", "") {
 		if lex.isKeyword("from") {
 			lex.nextToken()

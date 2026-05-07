@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"fmt"
@@ -22,7 +22,7 @@ type pipeUnpackWords struct {
 
 func (pu *pipeUnpackWords) String() string {
 	s := "unpack_words"
-	if pu.srcField != "_msg" {
+	if pu.srcField != _msg {
 		s += " from " + quoteTokenIfNeeded(pu.srcField)
 	}
 	if pu.dstField != pu.srcField {
@@ -55,7 +55,7 @@ func parsePipeUnpackWords(lex *lexer) (pipe, error) {
 	}
 	lex.nextToken()
 
-	srcField := "_msg"
+	srcField := _msg
 	if !lex.isKeyword("drop_duplicates", "as", ")", "|", "") {
 		if lex.isKeyword("from") {
 			lex.nextToken()

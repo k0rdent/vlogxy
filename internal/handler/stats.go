@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/k0rdent/vlogxy/internal/interfaces"
+	"github.com/k0rdent/vlogxy/internal/merger"
 	"github.com/k0rdent/vlogxy/internal/parser"
 	"github.com/k0rdent/vlogxy/pkg/common"
 )
@@ -26,8 +27,6 @@ type StatsSeries struct {
 }
 
 // Stats handles aggregation of stats query responses from multiple backends.
-// When pipes are provided it converts responses to flat rows, runs orderedPipeTasks,
-// then reconstructs a StatsResponse.
 type Stats struct {
 	pipes []*parser.Pipe
 }
@@ -41,14 +40,10 @@ func (s *Stats) ParseResponse(resp *http.Response) (StatsResponse, error) {
 	return common.DecodeJSONResponse[StatsResponse](resp)
 }
 
-func (s *Stats) Merge(responses []StatsResponse) ([]byte, error) {
-	return s.mergeWithPipes(responses)
-}
-
-// mergeWithPipes converts each StatsSeries to a flat row, runs orderedPipeTasks,
+// Merge converts each StatsSeries to a flat row, runs orderedPipeTasks,
 // then reconstructs a StatsResponse. __ts__ is injected into stats-pipe ByFields
 // (same as StatsRange) so mergeStatsPipe groups correctly.
-func (s *Stats) mergeWithPipes(responses []StatsResponse) ([]byte, error) {
+func (s *Stats) Merge(responses []StatsResponse) ([]byte, error) {
 	// Collect the query timestamp from the first available series.
 	var queryTimestamp float64
 	for _, resp := range responses {
@@ -66,7 +61,7 @@ func (s *Stats) mergeWithPipes(responses []StatsResponse) ([]byte, error) {
 	// Collect result names from the stats pipe.
 	resultNames := make(map[string]struct{})
 	for _, p := range s.pipes {
-		if p.Name == "stats" {
+		if p.Name == stats {
 			for _, fn := range p.Funcs {
 				resultNames[fn.ResultName] = struct{}{}
 			}
@@ -96,7 +91,7 @@ func (s *Stats) mergeWithPipes(responses []StatsResponse) ([]byte, error) {
 	// Inject __ts__ into each stats pipe's ByFields so mergeStatsPipe groups correctly.
 	modifiedPipes := make([]*parser.Pipe, len(s.pipes))
 	for i, p := range s.pipes {
-		if p.Name == "stats" {
+		if p.Name == stats {
 			cp := *p
 			cp.ByFields = append(append([]string{}, p.ByFields...), rangeTimestampField)
 			modifiedPipes[i] = &cp
@@ -106,8 +101,8 @@ func (s *Stats) mergeWithPipes(responses []StatsResponse) ([]byte, error) {
 	}
 
 	var err error
-	for _, task := range orderedPipeTasks(modifiedPipes) {
-		rows, err = task.merge(task.pipe, rows)
+	for _, task := range merger.OrderedPipeTasks(modifiedPipes) {
+		rows, err = task.Merge(task.Pipe, rows)
 		if err != nil {
 			return nil, err
 		}

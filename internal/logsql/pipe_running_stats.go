@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"fmt"
@@ -9,6 +9,8 @@ import (
 
 	"github.com/VictoriaMetrics/VictoriaLogs/lib/prefixfilter"
 )
+
+const totalStats = "total_stats"
 
 // PipeRunningStats processes '| running_stats ...' queries.
 //
@@ -84,7 +86,7 @@ func (ps *PipeRunningStats) String() string {
 
 func (ps *PipeRunningStats) Name() string {
 	if ps.isTotal {
-		return "total_stats"
+		return totalStats
 	}
 	return "running_stats"
 }

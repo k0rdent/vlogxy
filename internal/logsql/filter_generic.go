@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"github.com/VictoriaMetrics/VictoriaLogs/lib/prefixfilter"
@@ -70,5 +70,5 @@ func quoteFieldNameIfNeeded(s string) string {
 }
 
 func isMsgFieldName(fieldName string) bool {
-	return fieldName == "" || fieldName == "_msg"
+	return fieldName == "" || fieldName == _msg
 }

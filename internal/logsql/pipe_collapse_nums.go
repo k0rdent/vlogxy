@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"fmt"
@@ -25,7 +25,7 @@ func (pc *pipeCollapseNums) String() string {
 	if pc.iff != nil {
 		s += " " + pc.iff.String()
 	}
-	if pc.field != "_msg" {
+	if pc.field != _msg {
 		s += " at " + quoteTokenIfNeeded(pc.field)
 	}
 	if pc.isPrettify {
@@ -62,7 +62,7 @@ func parsePipeCollapseNums(lex *lexer) (pipe, error) {
 		iff = f
 	}
 
-	field := "_msg"
+	field := _msg
 	if lex.isKeyword("at") {
 		lex.nextToken()
 		f, err := parseFieldName(lex)

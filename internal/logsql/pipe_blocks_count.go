@@ -1,10 +1,12 @@
-package logstorage
+package logsql
 
 import (
 	"fmt"
 
 	"github.com/VictoriaMetrics/VictoriaLogs/lib/prefixfilter"
 )
+
+const blocksCount = "blocks_count"
 
 // pipeBlocksCount processes '| blocks_count' pipe.
 //
@@ -16,15 +18,15 @@ type pipeBlocksCount struct {
 }
 
 func (pc *pipeBlocksCount) String() string {
-	s := "blocks_count"
-	if pc.resultName != "blocks_count" {
+	s := blocksCount
+	if pc.resultName != blocksCount {
 		s += " as " + quoteTokenIfNeeded(pc.resultName)
 	}
 	return s
 }
 
 func (pc *pipeBlocksCount) Name() string {
-	return "blocks_count"
+	return blocksCount
 }
 
 func (pc *pipeBlocksCount) updateNeededFields(pf *prefixfilter.Filter) {
@@ -36,12 +38,12 @@ func (pc *pipeBlocksCount) visitSubqueries(_ func(q *Query)) {
 }
 
 func parsePipeBlocksCount(lex *lexer) (pipe, error) {
-	if !lex.isKeyword("blocks_count") {
+	if !lex.isKeyword(blocksCount) {
 		return nil, fmt.Errorf("expecting 'blocks_count'; got %q", lex.token)
 	}
 	lex.nextToken()
 
-	resultName := "blocks_count"
+	resultName := blocksCount
 	if lex.isKeyword("as") {
 		lex.nextToken()
 		name, err := parseFieldName(lex)

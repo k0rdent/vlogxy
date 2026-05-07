@@ -8,12 +8,14 @@ import (
 	"strconv"
 
 	"github.com/k0rdent/vlogxy/internal/interfaces"
+	"github.com/k0rdent/vlogxy/internal/merger"
 	"github.com/k0rdent/vlogxy/internal/parser"
 	"github.com/k0rdent/vlogxy/pkg/common"
 	log "github.com/sirupsen/logrus"
 )
 
 const rangeTimestampField = "__ts__"
+const stats = "stats"
 
 // StatsRangeResponse represents the response structure for stats range queries
 type StatsRangeResponse struct {
@@ -44,21 +46,22 @@ func (s *StatsRange) ParseResponse(resp *http.Response) (StatsRangeResponse, err
 	return common.DecodeJSONResponse[StatsRangeResponse](resp)
 }
 
-func (s *StatsRange) Merge(responses []StatsRangeResponse) ([]byte, error) {
-	return s.mergeWithPipes(responses)
+type entry struct {
+	metric map[string]string
+	values []common.ValuePair
 }
 
-// mergeWithPipes flattens each StatsRangeSeries into one row per (metric, timestamp):
+// Merge flattens each StatsRangeSeries into one row per (metric, timestamp):
 //
 //	{ label1: "v1", ..., "__ts__": "1234567890", resultName: "100" }
 //
 // It injects __ts__ into the stats pipe ByFields so that mergeStatsPipe groups by
 // (by_fields + timestamp) and then reconstructs the StatsRangeResponse matrix.
-func (s *StatsRange) mergeWithPipes(responses []StatsRangeResponse) ([]byte, error) {
+func (s *StatsRange) Merge(responses []StatsRangeResponse) ([]byte, error) {
 	// Collect result names from the stats pipe.
 	resultNames := make(map[string]struct{})
 	for _, p := range s.pipes {
-		if p.Name == "stats" {
+		if p.Name == stats {
 			for _, fn := range p.Funcs {
 				resultNames[fn.ResultName] = struct{}{}
 			}
@@ -100,7 +103,7 @@ func (s *StatsRange) mergeWithPipes(responses []StatsRangeResponse) ([]byte, err
 	// (by_fields + timestamp) instead of collapsing all timestamps into one row.
 	modifiedPipes := make([]*parser.Pipe, len(s.pipes))
 	for i, p := range s.pipes {
-		if p.Name == "stats" {
+		if p.Name == stats {
 			cp := *p
 			cp.ByFields = append(append([]string{}, p.ByFields...), rangeTimestampField)
 			modifiedPipes[i] = &cp
@@ -110,18 +113,14 @@ func (s *StatsRange) mergeWithPipes(responses []StatsRangeResponse) ([]byte, err
 	}
 
 	var err error
-	for _, task := range orderedPipeTasks(modifiedPipes) {
-		rows, err = task.merge(task.pipe, rows)
+	for _, task := range merger.OrderedPipeTasks(modifiedPipes) {
+		rows, err = task.Merge(task.Pipe, rows)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	// Reconstruct the matrix: group rows by metric key, preserving order.
-	type entry struct {
-		metric map[string]string
-		values []common.ValuePair
-	}
 	seriesMap := make(map[common.JsonKey]*entry)
 	var seriesOrder []common.JsonKey
 

@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ import (
 //
 // See https://docs.victoriametrics.com/victorialogs/logsql/#last-pipe
 type pipeLast struct {
-	ps *pipeSort
+	ps *PipeSort
 }
 
 func (pl *pipeLast) String() string {
@@ -22,7 +22,7 @@ func (pl *pipeLast) Name() string {
 	return "last"
 }
 
-func pipeLastFirstString(ps *pipeSort) string {
+func pipeLastFirstString(ps *PipeSort) string {
 	s := "first"
 	if ps.isDesc {
 		s = "last"
@@ -71,8 +71,8 @@ func parsePipeLast(lex *lexer) (pipe, error) {
 	return pl, nil
 }
 
-func parsePipeLastFirst(lex *lexer) (*pipeSort, error) {
-	var ps pipeSort
+func parsePipeLastFirst(lex *lexer) (*PipeSort, error) {
+	var ps PipeSort
 	ps.limit = 1
 	if !lex.isKeyword("by", "partition", "rank", "(", "|", ")", "") {
 		s, err := lex.nextCompoundToken()

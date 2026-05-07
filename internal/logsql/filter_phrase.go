@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 // filterPhrase filters field entries by phrase match (aka full text search).
 //

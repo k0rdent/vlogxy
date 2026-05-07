@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"fmt"
@@ -60,7 +60,7 @@ func parsePipePackJSON(lex *lexer) (pipe, error) {
 	}
 
 	// parse optional 'as ...` part
-	resultField := "_msg"
+	resultField := _msg
 	if lex.isKeyword("as") {
 		lex.nextToken()
 	}

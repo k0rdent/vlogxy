@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"time"
@@ -37,5 +37,5 @@ func (fr *filterWeekRange) String() string {
 }
 
 func (fr *filterWeekRange) updateNeededFields(pf *prefixfilter.Filter) {
-	pf.AddAllowFilter("_time")
+	pf.AddAllowFilter(_time)
 }

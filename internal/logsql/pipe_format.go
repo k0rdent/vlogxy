@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"fmt"
@@ -32,10 +32,10 @@ func (pf *pipeFormat) String() string {
 		s += " as " + quoteTokenIfNeeded(pf.resultField)
 	}
 	if pf.keepOriginalFields {
-		s += " keep_original_fields"
+		s += " " + keepOriginalFieldsName
 	}
 	if pf.skipEmptyResults {
-		s += " skip_empty_results"
+		s += " " + skipEmptyResultsName
 	}
 	return s
 }
@@ -99,7 +99,7 @@ func parsePipeFormat(lex *lexer) (pipe, error) {
 	}
 
 	// parse optional 'as ...` part
-	resultField := "_msg"
+	resultField := _msg
 	if lex.isKeyword("as") {
 		lex.nextToken()
 		field, err := parseFieldName(lex)

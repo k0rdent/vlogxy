@@ -1,4 +1,4 @@
-package handler
+package merger
 
 import (
 	"github.com/k0rdent/vlogxy/internal/aggregation"

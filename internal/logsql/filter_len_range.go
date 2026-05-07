@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 // filterLenRange matches field values with the length in the given range [minLen, maxLen].
 //

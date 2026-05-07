@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"fmt"
@@ -41,10 +41,10 @@ func (pu *pipeUnpackLogfmt) String() string {
 		s += " result_prefix " + quoteTokenIfNeeded(pu.resultPrefix)
 	}
 	if pu.keepOriginalFields {
-		s += " keep_original_fields"
+		s += " " + keepOriginalFieldsName
 	}
 	if pu.skipEmptyResults {
-		s += " skip_empty_results"
+		s += " " + skipEmptyResultsName
 	}
 	return s
 }
@@ -76,7 +76,7 @@ func parsePipeUnpackLogfmt(lex *lexer) (pipe, error) {
 		iff = f
 	}
 
-	fromField := "_msg"
+	fromField := _msg
 	if !lex.isKeyword("fields", "result_prefix", "keep_original_fields", "skip_empty_results", ")", "|", "") {
 		if lex.isKeyword("from") {
 			lex.nextToken()

@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"github.com/VictoriaMetrics/VictoriaLogs/lib/prefixfilter"

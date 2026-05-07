@@ -3,7 +3,7 @@ package parser
 import (
 	"fmt"
 
-	logstorage "github.com/k0rdent/vlogxy/internal/logsql"
+	"github.com/k0rdent/vlogxy/internal/logsql"
 )
 
 type Pipe struct {
@@ -17,7 +17,7 @@ type Pipe struct {
 	Funcs []*Func
 	// SortFields is the ordered list of sort keys for a sort pipe.
 	// Each entry carries the field name and whether it is sorted descending.
-	SortFields []logstorage.SortField
+	SortFields []logsql.SortField
 	// SortIsDesc is the pipe-level descending flag (applies when SortFields is empty).
 	SortIsDesc bool
 	// SortLimit is the row limit declared in the sort pipe (0 = unlimited).
@@ -36,7 +36,7 @@ type Func struct {
 }
 
 func ParseQuery(query string) ([]*Pipe, error) {
-	q, err := logstorage.ParseQuery(query)
+	q, err := logsql.ParseQuery(query)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func ParseQuery(query string) ([]*Pipe, error) {
 		funcs := make([]*Func, 0)
 		byFields := make([]string, 0)
 
-		if stats, ok := pipe.(*logstorage.PipeStats); ok {
+		if stats, ok := pipe.(*logsql.PipeStats); ok {
 			for _, f := range stats.ByFields() {
 				byFields = append(byFields, f.Name())
 			}
@@ -61,7 +61,7 @@ func ParseQuery(query string) ([]*Pipe, error) {
 			}
 		}
 
-		if totalStats, ok := pipe.(*logstorage.PipeRunningStats); ok && totalStats.IsTotal() {
+		if totalStats, ok := pipe.(*logsql.PipeRunningStats); ok && totalStats.IsTotal() {
 			byFields = append(byFields, totalStats.ByFields()...)
 
 			for _, f := range totalStats.Funcs() {
@@ -74,34 +74,26 @@ func ParseQuery(query string) ([]*Pipe, error) {
 			}
 		}
 
-		if _, ok := pipe.(logstorage.PipeSortAccessor); ok {
-			byFields = nil
+		var sortFields []logsql.SortField
+		var sortIsDesc bool
+		var sortLimit uint64
+
+		if s, ok := pipe.(*logsql.PipeSort); ok {
+			byFields = s.ByFields()
+			sortFields = s.SortFields()
+			sortIsDesc = s.SortIsDesc()
+			sortLimit = s.SortLimit()
 			funcs = nil
 		}
 
 		pipes = append(pipes, &Pipe{
-			Raw:      pipe.String(),
-			Name:     pipe.Name(),
-			ByFields: byFields,
-			Funcs:    funcs,
-			SortFields: func() []logstorage.SortField {
-				if sp, ok := pipe.(logstorage.PipeSortAccessor); ok {
-					return sp.SortFields()
-				}
-				return nil
-			}(),
-			SortIsDesc: func() bool {
-				if sp, ok := pipe.(logstorage.PipeSortAccessor); ok {
-					return sp.SortIsDesc()
-				}
-				return false
-			}(),
-			SortLimit: func() uint64 {
-				if sp, ok := pipe.(logstorage.PipeSortAccessor); ok {
-					return sp.SortLimit()
-				}
-				return 0
-			}(),
+			Raw:        pipe.String(),
+			Name:       pipe.Name(),
+			ByFields:   byFields,
+			Funcs:      funcs,
+			SortFields: sortFields,
+			SortIsDesc: sortIsDesc,
+			SortLimit:  sortLimit,
 		})
 	}
 	return pipes, nil

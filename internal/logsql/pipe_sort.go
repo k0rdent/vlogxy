@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"fmt"
@@ -7,10 +7,10 @@ import (
 	"github.com/VictoriaMetrics/VictoriaLogs/lib/prefixfilter"
 )
 
-// pipeSort processes '| sort ...' queries.
+// PipeSort processes '| sort ...' queries.
 //
 // See https://docs.victoriametrics.com/victorialogs/logsql/#sort-pipe
-type pipeSort struct {
+type PipeSort struct {
 	// byFields contains field names for sorting from 'by(...)' clause.
 	byFields []*bySortField
 
@@ -32,7 +32,7 @@ type pipeSort struct {
 	partitionByFields []string
 }
 
-func (ps *pipeSort) String() string {
+func (ps *PipeSort) String() string {
 	s := "sort"
 	if len(ps.byFields) > 0 {
 		a := make([]string, len(ps.byFields))
@@ -63,11 +63,19 @@ func (ps *pipeSort) String() string {
 	return s
 }
 
-func (ps *pipeSort) Name() string {
+func (ps *PipeSort) ByFields() []string {
+	fields := make([]string, len(ps.byFields))
+	for i, bf := range ps.byFields {
+		fields[i] = bf.name
+	}
+	return fields
+}
+
+func (ps *PipeSort) Name() string {
 	return "sort"
 }
 
-func (ps *pipeSort) updateNeededFields(pf *prefixfilter.Filter) {
+func (ps *PipeSort) updateNeededFields(pf *prefixfilter.Filter) {
 	if pf.MatchNothing() {
 		// There is no need in fetching any fields, since all of them are ignored by the caller.
 		return
@@ -88,7 +96,7 @@ func (ps *pipeSort) updateNeededFields(pf *prefixfilter.Filter) {
 	pf.AddAllowFilters(ps.partitionByFields)
 }
 
-func (ps *pipeSort) visitSubqueries(_ func(q *Query)) {
+func (ps *PipeSort) visitSubqueries(_ func(q *Query)) {
 	// nothing to do
 }
 
@@ -103,7 +111,7 @@ type SortField struct {
 // SortFields returns the ordered list of sort keys for this pipe.
 // When the list is empty the whole row set is sorted as a single group
 // using the pipe-level IsDesc flag.
-func (ps *pipeSort) SortFields() []SortField {
+func (ps *PipeSort) SortFields() []SortField {
 	fields := make([]SortField, len(ps.byFields))
 	for i, bf := range ps.byFields {
 		fields[i] = SortField{Name: bf.name, IsDesc: bf.isDesc}
@@ -113,18 +121,10 @@ func (ps *pipeSort) SortFields() []SortField {
 
 // SortIsDesc returns true when the pipe-level descending flag is set
 // (applies when no per-field directions are specified).
-func (ps *pipeSort) SortIsDesc() bool { return ps.isDesc }
+func (ps *PipeSort) SortIsDesc() bool { return ps.isDesc }
 
 // SortLimit returns the row limit (0 means unlimited).
-func (ps *pipeSort) SortLimit() uint64 { return ps.limit }
-
-// PipeSortAccessor is implemented by sort pipes and lets the parser layer
-// read sort configuration without importing the concrete unexported type.
-type PipeSortAccessor interface {
-	SortFields() []SortField
-	SortIsDesc() bool
-	SortLimit() uint64
-}
+func (ps *PipeSort) SortLimit() uint64 { return ps.limit }
 
 func parsePipeSort(lex *lexer) (pipe, error) {
 	if !lex.isKeyword("sort") && !lex.isKeyword("order") {
@@ -132,7 +132,7 @@ func parsePipeSort(lex *lexer) (pipe, error) {
 	}
 	lex.nextToken()
 
-	var ps pipeSort
+	var ps PipeSort
 	if lex.isKeyword("by", "(") {
 		if lex.isKeyword("by") {
 			lex.nextToken()
@@ -200,7 +200,7 @@ func parsePipeSort(lex *lexer) (pipe, error) {
 	}
 }
 
-// bySortField represents 'by (...)' part of the pipeSort.
+// bySortField represents 'by (...)' part of the PipeSort.
 type bySortField struct {
 	// the name of the field to sort
 	name string

@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 var maxStringRangeValue = string([]byte{255, 255, 255, 255})
 

@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/k0rdent/vlogxy/internal/interfaces"
+	"github.com/k0rdent/vlogxy/internal/merger"
 	"github.com/k0rdent/vlogxy/internal/parser"
 	log "github.com/sirupsen/logrus"
 )
@@ -61,8 +62,8 @@ func (f *FlatStatsQuery) Merge(responses []FlatResponse) ([]byte, error) {
 
 	// Apply each pipe's merge logic, sorted by registered Order.
 	var err error
-	for _, task := range orderedPipeTasks(f.pipes) {
-		rows, err = task.merge(task.pipe, rows)
+	for _, task := range merger.OrderedPipeTasks(f.pipes) {
+		rows, err = task.Merge(task.Pipe, rows)
 		if err != nil {
 			return nil, err
 		}

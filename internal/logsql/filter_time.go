@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"github.com/VictoriaMetrics/VictoriaLogs/lib/prefixfilter"
@@ -32,5 +32,5 @@ func (ft *filterTime) String() string {
 }
 
 func (ft *filterTime) updateNeededFields(pf *prefixfilter.Filter) {
-	pf.AddAllowFilter("_time")
+	pf.AddAllowFilter(_time)
 }

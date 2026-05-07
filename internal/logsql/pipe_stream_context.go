@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"fmt"
@@ -46,7 +46,7 @@ func (pc *pipeStreamContext) Name() string {
 }
 
 func (pc *pipeStreamContext) updateNeededFields(pf *prefixfilter.Filter) {
-	pf.AddAllowFilter("_time")
+	pf.AddAllowFilter(_time)
 	pf.AddAllowFilter("_stream_id")
 }
 

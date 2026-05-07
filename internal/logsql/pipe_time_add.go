@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ type pipeTimeAdd struct {
 
 func (pa *pipeTimeAdd) String() string {
 	s := "time_add " + pa.offsetStr
-	if pa.field != "_time" {
+	if pa.field != _time {
 		s += " at " + quoteTokenIfNeeded(pa.field)
 	}
 	return s
@@ -48,7 +48,7 @@ func parsePipeTimeAdd(lex *lexer) (pipe, error) {
 	}
 
 	// Parse optional field
-	field := "_time"
+	field := _time
 	if lex.isKeyword("at") {
 		lex.nextToken()
 		fieldName, err := parseFieldName(lex)

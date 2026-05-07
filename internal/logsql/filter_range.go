@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 // filterRange matches the given range [minValue..maxValue].
 //

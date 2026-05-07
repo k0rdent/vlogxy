@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"fmt"
@@ -39,10 +39,10 @@ func (pe *pipeExtractRegexp) String() string {
 		s += " from " + quoteTokenIfNeeded(pe.fromField)
 	}
 	if pe.keepOriginalFields {
-		s += " keep_original_fields"
+		s += " " + keepOriginalFieldsName
 	}
 	if pe.skipEmptyResults {
-		s += " skip_empty_results"
+		s += " " + skipEmptyResultsName
 	}
 	return s
 }
@@ -117,7 +117,7 @@ func parsePipeExtractRegexp(lex *lexer) (pipe, error) {
 	}
 
 	// parse optional 'from ...' part
-	fromField := "_msg"
+	fromField := _msg
 	if lex.isKeyword("from") {
 		lex.nextToken()
 		f, err := parseFieldName(lex)

@@ -117,6 +117,7 @@ func AggregateMax(values []string) string {
 			log.Errorf("failed to parse value %q as float for max aggregation: %v", v, err)
 			continue
 		}
+
 		if i == 0 || f > max {
 			max = f
 		}
@@ -137,9 +138,11 @@ func AggregateAvg(values []string) string {
 		sum += f
 		count++
 	}
+
 	if count == 0 {
 		return "0"
 	}
+
 	avg := sum / float64(count)
 	return common.FloatToStr(avg)
 }

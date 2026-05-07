@@ -1,14 +1,14 @@
-package logstorage
+package logsql
 
 import (
 	"fmt"
 )
 
 func parsePipeTotalStats(lex *lexer) (pipe, error) {
-	if !lex.isKeyword("total_stats") {
-		return nil, fmt.Errorf("expecting `total_stats`; got %q", lex.token)
+	if !lex.isKeyword(totalStats) {
+		return nil, fmt.Errorf("expecting `%s`; got %q", totalStats, lex.token)
 	}
 	lex.nextToken()
 
-	return parsePipeRunningStatsExt(lex, "total_stats")
+	return parsePipeRunningStatsExt(lex, totalStats)
 }

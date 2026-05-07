@@ -1,9 +1,14 @@
-package logstorage
+package logsql
 
 import (
 	"fmt"
 
 	"github.com/VictoriaMetrics/VictoriaLogs/lib/prefixfilter"
+)
+
+const (
+	keepOriginalFieldsName = "keep_original_fields"
+	skipEmptyResultsName   = "skip_empty_results"
 )
 
 // pipeExtract processes '| extract ...' pipe.
@@ -32,10 +37,10 @@ func (pe *pipeExtract) String() string {
 		s += " from " + quoteTokenIfNeeded(pe.fromField)
 	}
 	if pe.keepOriginalFields {
-		s += " keep_original_fields"
+		s += " " + keepOriginalFieldsName
 	}
 	if pe.skipEmptyResults {
-		s += " skip_empty_results"
+		s += " " + skipEmptyResultsName
 	}
 	return s
 }
@@ -97,7 +102,7 @@ func parsePipeExtract(lex *lexer) (pipe, error) {
 	}
 
 	// parse optional 'from ...' part
-	fromField := "_msg"
+	fromField := _msg
 	if lex.isKeyword("from") {
 		lex.nextToken()
 		f, err := parseFieldName(lex)

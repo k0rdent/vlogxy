@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"fmt"
@@ -16,6 +16,11 @@ import (
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/timeutil"
 
 	"github.com/VictoriaMetrics/VictoriaLogs/lib/prefixfilter"
+)
+
+const (
+	_msg  = "_msg"
+	_time = "_time"
 )
 
 type lexer struct {
@@ -328,7 +333,7 @@ again:
 		}
 		size++
 		lex.token = string(b)
-		lex.rawToken = string(s[:size])
+		lex.rawToken = s[:size]
 		lex.s = s[size:]
 		return
 	case '=':
@@ -925,7 +930,7 @@ func optimizeSortOffsetPipes(pipes []pipe) []pipe {
 	// Merge 'sort ... | offset ...' into 'sort ... offset ...'
 	i := 1
 	for i < len(pipes) {
-		ps, ok1 := pipes[i-1].(*pipeSort)
+		ps, ok1 := pipes[i-1].(*PipeSort)
 		po, ok2 := pipes[i].(*pipeOffset)
 		if !ok1 || !ok2 {
 			i++
@@ -951,7 +956,7 @@ func optimizeSortLimitPipes(pipes []pipe) []pipe {
 	// Merge 'sort ... | limit ...' into 'sort ... limit ...'
 	i := 1
 	for i < len(pipes) {
-		ps, ok1 := pipes[i-1].(*pipeSort)
+		ps, ok1 := pipes[i-1].(*PipeSort)
 		pl, ok2 := pipes[i].(*pipeLimit)
 		if !ok1 || !ok2 {
 			i++
@@ -1308,6 +1313,7 @@ func parseFilterAnd(lex *lexer, fieldName string) (filter, error) {
 	}
 }
 
+//nolint:gocyclo
 func parseFilterGeneric(lex *lexer, fieldName string) (filter, error) {
 	// Verify the previous adjacent token
 	if lex.isKeyword("(") {
@@ -1388,7 +1394,7 @@ func parseFilterGeneric(lex *lexer, fieldName string) (filter, error) {
 		return parseFilterStringRange(lex, fieldName)
 	case lex.isKeyword("value_type"):
 		return parseFilterValueType(lex, fieldName)
-	case lex.isKeyword("_time"):
+	case lex.isKeyword(_time):
 		return parseFilterTimeGeneric(lex, fieldName)
 	case lex.isKeyword("_stream_id"):
 		return parseFilterStreamID(lex, fieldName)
@@ -1423,7 +1429,7 @@ func parseFilterPhrase(lex *lexer, fieldName string) (filter, error) {
 		lex.nextToken()
 
 		switch phrase {
-		case "_time":
+		case _time:
 			return parseFilterTimeInternal(lex)
 		case "_stream_id":
 			return parseFilterStreamIDInternal(lex)
@@ -3197,7 +3203,7 @@ func SubInt64NoOverflow(a, b int64) int64 {
 
 func getCanonicalColumnName(fieldName string) string {
 	if fieldName == "" {
-		return "_msg"
+		return _msg
 	}
 	return fieldName
 }

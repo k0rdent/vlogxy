@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"fmt"
@@ -43,7 +43,7 @@ func (pu *pipeUnpackSyslog) String() string {
 		s += " result_prefix " + quoteTokenIfNeeded(pu.resultPrefix)
 	}
 	if pu.keepOriginalFields {
-		s += " keep_original_fields"
+		s += " " + keepOriginalFieldsName
 	}
 	return s
 }
@@ -92,7 +92,7 @@ func parsePipeUnpackSyslog(lex *lexer) (pipe, error) {
 		iff = f
 	}
 
-	fromField := "_msg"
+	fromField := _msg
 	if !lex.isKeyword("offset", "result_prefix", "keep_original_fields", ")", "|", "") {
 		if lex.isKeyword("from") {
 			lex.nextToken()

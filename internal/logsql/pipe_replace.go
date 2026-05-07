@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"fmt"
@@ -27,7 +27,7 @@ func (pr *pipeReplace) String() string {
 		s += " " + pr.iff.String()
 	}
 	s += fmt.Sprintf(" (%s, %s)", quoteTokenIfNeeded(pr.oldSubstr), quoteTokenIfNeeded(pr.newSubstr))
-	if pr.field != "_msg" {
+	if pr.field != _msg {
 		s += " at " + quoteTokenIfNeeded(pr.field)
 	}
 	if pr.limit > 0 {
@@ -88,7 +88,7 @@ func parsePipeReplace(lex *lexer) (pipe, error) {
 	}
 	lex.nextToken()
 
-	field := "_msg"
+	field := _msg
 	if lex.isKeyword("at") {
 		lex.nextToken()
 		f, err := parseFieldName(lex)

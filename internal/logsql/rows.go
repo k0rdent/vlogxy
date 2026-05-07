@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"github.com/valyala/quicktemplate"
@@ -16,7 +16,7 @@ type Field struct {
 func (f *Field) marshalToJSON(dst []byte) []byte {
 	name := f.Name
 	if name == "" {
-		name = "_msg"
+		name = _msg
 	}
 	dst = quicktemplate.AppendJSONString(dst, name, true)
 	dst = append(dst, ':')

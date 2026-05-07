@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 //
 // See https://docs.victoriametrics.com/victorialogs/logsql/#first-pipe
 type pipeFirst struct {
-	ps *pipeSort
+	ps *PipeSort
 }
 
 func (pf *pipeFirst) String() string {

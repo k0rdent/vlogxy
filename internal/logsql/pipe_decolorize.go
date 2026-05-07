@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ type pipeDecolorize struct {
 
 func (pd *pipeDecolorize) String() string {
 	s := "decolorize"
-	if pd.field != "_msg" {
+	if pd.field != _msg {
 		s += " " + quoteTokenIfNeeded(pd.field)
 	}
 	return s
@@ -39,7 +39,7 @@ func parsePipeDecolorize(lex *lexer) (pipe, error) {
 	}
 	lex.nextToken()
 
-	field := "_msg"
+	field := _msg
 	if !lex.isKeyword("|", ")", "") {
 		f, err := parseFieldName(lex)
 		if err != nil {

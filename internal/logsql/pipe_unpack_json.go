@@ -1,4 +1,4 @@
-package logstorage
+package logsql
 
 import (
 	"fmt"
@@ -47,10 +47,10 @@ func (pu *pipeUnpackJSON) String() string {
 		s += " result_prefix " + quoteTokenIfNeeded(pu.resultPrefix)
 	}
 	if pu.keepOriginalFields {
-		s += " keep_original_fields"
+		s += " " + keepOriginalFieldsName
 	}
 	if pu.skipEmptyResults {
-		s += " skip_empty_results"
+		s += " " + skipEmptyResultsName
 	}
 	return s
 }
