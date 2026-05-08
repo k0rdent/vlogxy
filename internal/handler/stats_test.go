@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"encoding/json"
-	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -12,14 +11,9 @@ import (
 )
 
 var _ = Describe("Stats Merge method tests", func() {
-	var stats *handler.Stats
-
-	BeforeEach(func() {
-		stats = handler.NewStats().(*handler.Stats)
-	})
-
 	Context("when merging empty responses", func() {
 		It("should return empty result", func() {
+			stats := handler.NewStatsQuery(countPipe())
 			result, err := stats.Merge([]handler.StatsResponse{})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -32,6 +26,7 @@ var _ = Describe("Stats Merge method tests", func() {
 
 	Context("when merging single response", func() {
 		It("should return the same data", func() {
+			stats := handler.NewStatsQuery(countPipe())
 			responses := []handler.StatsResponse{
 				{
 					Data: struct {
@@ -41,7 +36,7 @@ var _ = Describe("Stats Merge method tests", func() {
 						ResultType: "vector",
 						Result: []handler.StatsSeries{
 							{
-								Metric: map[string]string{"label": "value1"},
+								Metric: map[string]string{"__name__": "value"},
 								Value:  common.ValuePair{1234567890.0, "100"},
 							},
 						},
@@ -60,14 +55,13 @@ var _ = Describe("Stats Merge method tests", func() {
 			Expect(response.Status).To(Equal("success"))
 			Expect(response.Data.ResultType).To(Equal("vector"))
 			Expect(response.Data.Result).To(HaveLen(1))
-			Expect(response.Data.Result[0].Metric).To(Equal(map[string]string{"label": "value1"}))
-			Expect(response.Data.Result[0].Value[0]).To(Equal(1234567890.0))
-			Expect(response.Data.Result[0].Value[1]).To(Equal(fmt.Sprintf("%f", 100.0)))
+			Expect(response.Data.Result[0].Value[1]).To(Equal("100"))
 		})
 	})
 
 	Context("when merging multiple responses with same metrics", func() {
-		It("should aggregate values for the same timestamp and metric", func() {
+		It("should aggregate values for the same metric", func() {
+			stats := handler.NewStatsQuery(countPipe("label"))
 			responses := []handler.StatsResponse{
 				{
 					Data: struct {
@@ -77,7 +71,7 @@ var _ = Describe("Stats Merge method tests", func() {
 						ResultType: "vector",
 						Result: []handler.StatsSeries{
 							{
-								Metric: map[string]string{"label": "value1"},
+								Metric: map[string]string{"label": "value1", "__name__": "value"},
 								Value:  common.ValuePair{1234567890.0, "100"},
 							},
 						},
@@ -92,7 +86,7 @@ var _ = Describe("Stats Merge method tests", func() {
 						ResultType: "vector",
 						Result: []handler.StatsSeries{
 							{
-								Metric: map[string]string{"label": "value1"},
+								Metric: map[string]string{"label": "value1", "__name__": "value"},
 								Value:  common.ValuePair{1234567890.0, "200"},
 							},
 						},
@@ -109,13 +103,14 @@ var _ = Describe("Stats Merge method tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(response.Data.Result).To(HaveLen(1))
-			Expect(response.Data.Result[0].Metric).To(Equal(map[string]string{"label": "value1"}))
-			Expect(response.Data.Result[0].Value[1]).To(Equal(fmt.Sprintf("%f", 300.0)))
+			Expect(response.Data.Result[0].Metric).To(HaveKeyWithValue("label", "value1"))
+			Expect(response.Data.Result[0].Value[1]).To(Equal("300"))
 		})
 	})
 
 	Context("when merging multiple responses with different metrics", func() {
 		It("should keep all metrics separate", func() {
+			stats := handler.NewStatsQuery(countPipe("label"))
 			responses := []handler.StatsResponse{
 				{
 					Data: struct {
@@ -125,7 +120,7 @@ var _ = Describe("Stats Merge method tests", func() {
 						ResultType: "vector",
 						Result: []handler.StatsSeries{
 							{
-								Metric: map[string]string{"label": "value1"},
+								Metric: map[string]string{"label": "value1", "__name__": "value"},
 								Value:  common.ValuePair{1234567890.0, "100"},
 							},
 						},
@@ -140,7 +135,7 @@ var _ = Describe("Stats Merge method tests", func() {
 						ResultType: "vector",
 						Result: []handler.StatsSeries{
 							{
-								Metric: map[string]string{"label": "value2"},
+								Metric: map[string]string{"label": "value2", "__name__": "value"},
 								Value:  common.ValuePair{1234567890.0, "200"},
 							},
 						},
@@ -162,6 +157,7 @@ var _ = Describe("Stats Merge method tests", func() {
 
 	Context("when merging responses with complex metrics", func() {
 		It("should handle multiple labels correctly", func() {
+			stats := handler.NewStatsQuery(countPipe("app", "env"))
 			responses := []handler.StatsResponse{
 				{
 					Data: struct {
@@ -171,7 +167,7 @@ var _ = Describe("Stats Merge method tests", func() {
 						ResultType: "vector",
 						Result: []handler.StatsSeries{
 							{
-								Metric: map[string]string{"app": "web", "env": "prod"},
+								Metric: map[string]string{"app": "web", "env": "prod", "__name__": "value"},
 								Value:  common.ValuePair{1234567890.0, "50"},
 							},
 						},
@@ -186,7 +182,7 @@ var _ = Describe("Stats Merge method tests", func() {
 						ResultType: "vector",
 						Result: []handler.StatsSeries{
 							{
-								Metric: map[string]string{"app": "web", "env": "prod"},
+								Metric: map[string]string{"app": "web", "env": "prod", "__name__": "value"},
 								Value:  common.ValuePair{1234567890.0, "150"},
 							},
 						},
@@ -205,7 +201,7 @@ var _ = Describe("Stats Merge method tests", func() {
 			Expect(response.Data.Result).To(HaveLen(1))
 			Expect(response.Data.Result[0].Metric).To(HaveKeyWithValue("app", "web"))
 			Expect(response.Data.Result[0].Metric).To(HaveKeyWithValue("env", "prod"))
-			Expect(response.Data.Result[0].Value[1]).To(Equal(fmt.Sprintf("%f", 200.0)))
+			Expect(response.Data.Result[0].Value[1]).To(Equal("200"))
 		})
 	})
 })
